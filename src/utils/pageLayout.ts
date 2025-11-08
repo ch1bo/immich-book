@@ -39,11 +39,19 @@ export const PAGE_SIZES: Record<string, Record<string, PageSize>> = {
 }
 
 export interface LayoutOptions {
-  pageSize: 'A4' | 'LETTER' | 'A3'
+  pageSize: 'A4' | 'LETTER' | 'A3' | 'CUSTOM'
   orientation: 'portrait' | 'landscape'
   margin: number
   rowHeight: number
   spacing: number
+  customWidth?: number // in cm
+  customHeight?: number // in cm
+}
+
+// Convert centimeters to pixels at 96 DPI (web display)
+// 1 cm = 37.795275591 pixels at 96 DPI
+export function cmToPixels(cm: number): number {
+  return Math.round(cm * 37.795275591)
 }
 
 /**
@@ -56,8 +64,22 @@ export function calculatePageLayout(
 ): Page[] {
   if (assets.length === 0) return []
 
-  const { pageSize, orientation, margin, rowHeight, spacing } = options
-  const pageDimensions = PAGE_SIZES[pageSize][orientation]
+  const { pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight } = options
+
+  // Determine page dimensions
+  let pageDimensions: { width: number; height: number }
+  if (pageSize === 'CUSTOM' && customWidth && customHeight) {
+    pageDimensions = {
+      width: cmToPixels(customWidth),
+      height: cmToPixels(customHeight),
+    }
+  } else if (pageSize !== 'CUSTOM') {
+    pageDimensions = PAGE_SIZES[pageSize][orientation]
+  } else {
+    // Fallback to A4 portrait if custom selected but no dimensions provided
+    pageDimensions = PAGE_SIZES.A4.portrait
+  }
+
   const contentWidth = pageDimensions.width - margin * 2
   const contentHeight = pageDimensions.height - margin * 2
 

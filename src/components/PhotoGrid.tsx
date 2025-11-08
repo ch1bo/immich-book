@@ -17,9 +17,11 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const spacing = 4 // Fixed spacing between photos
 
   // Page settings
-  const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3'>('A4')
+  const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('A4')
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
   const [margin, setMargin] = useState(50)
+  const [customWidth, setCustomWidth] = useState(21.0) // Default A4 width in cm
+  const [customHeight, setCustomHeight] = useState(29.7) // Default A4 height in cm
 
   useEffect(() => {
     loadAlbumAssets()
@@ -46,8 +48,10 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       margin,
       rowHeight,
       spacing,
+      customWidth,
+      customHeight,
     })
-  }, [assets, pageSize, orientation, margin, rowHeight, spacing])
+  }, [assets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight])
 
   const handlePrint = () => {
     window.print()
@@ -129,29 +133,67 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
               <select
                 id="pageSize"
                 value={pageSize}
-                onChange={(e) => setPageSize(e.target.value as 'A4' | 'LETTER' | 'A3')}
+                onChange={(e) => setPageSize(e.target.value as 'A4' | 'LETTER' | 'A3' | 'CUSTOM')}
                 className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="A4">A4</option>
                 <option value="LETTER">Letter</option>
                 <option value="A3">A3</option>
+                <option value="CUSTOM">Custom</option>
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <label htmlFor="orientation" className="text-sm text-gray-700">
-                Orientation:
-              </label>
-              <select
-                id="orientation"
-                value={orientation}
-                onChange={(e) => setOrientation(e.target.value as 'portrait' | 'landscape')}
-                className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="portrait">Portrait</option>
-                <option value="landscape">Landscape</option>
-              </select>
-            </div>
+            {pageSize === 'CUSTOM' ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="customWidth" className="text-sm text-gray-700">
+                    Width:
+                  </label>
+                  <input
+                    type="number"
+                    id="customWidth"
+                    value={customWidth}
+                    onChange={(e) => setCustomWidth(Number(e.target.value))}
+                    min="5"
+                    max="100"
+                    step="0.1"
+                    className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-xs text-gray-600">cm</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="customHeight" className="text-sm text-gray-700">
+                    Height:
+                  </label>
+                  <input
+                    type="number"
+                    id="customHeight"
+                    value={customHeight}
+                    onChange={(e) => setCustomHeight(Number(e.target.value))}
+                    min="5"
+                    max="100"
+                    step="0.1"
+                    className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-xs text-gray-600">cm</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <label htmlFor="orientation" className="text-sm text-gray-700">
+                  Orientation:
+                </label>
+                <select
+                  id="orientation"
+                  value={orientation}
+                  onChange={(e) => setOrientation(e.target.value as 'portrait' | 'landscape')}
+                  className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="portrait">Portrait</option>
+                  <option value="landscape">Landscape</option>
+                </select>
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <label htmlFor="margin" className="text-sm text-gray-700">
@@ -182,7 +224,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
       {/* Photo Book Pages */}
       <div className="space-y-8">
-        {pages.map((page, pageIndex) => (
+        {pages.map((page) => (
           <div key={page.pageNumber} className="relative">
             {/* Page container */}
             <div
