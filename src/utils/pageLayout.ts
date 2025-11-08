@@ -88,6 +88,9 @@ export function calculatePageLayout(
     assets.map((asset) => {
       const width = asset.exifInfo?.exifImageWidth || 1
       const height = asset.exifInfo?.exifImageHeight || 1
+      if (asset.exifInfo?.orientation == "6") {
+        return height / width
+      }
       return width / height
     })
   )
