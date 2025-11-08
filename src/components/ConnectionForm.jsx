@@ -1,0 +1,96 @@
+import { useState } from 'react'
+import { init, getMyUser } from '@immich/sdk'
+
+function ConnectionForm({ onConnect }) {
+  const [serverUrl, setServerUrl] = useState('')
+  const [apiKey, setApiKey] = useState('')
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    setIsConnecting(true)
+
+    try {
+      // Remove trailing slash and add /api
+      const baseUrl = serverUrl.replace(/\/$/, '') + '/api'
+
+      // Initialize the SDK
+      init({ baseUrl, apiKey })
+
+      // Validate connection by getting user info
+      const user = await getMyUser()
+
+      // Store config in state and localStorage
+      const config = { serverUrl, apiKey, user }
+      localStorage.setItem('immich-config', JSON.stringify(config))
+      onConnect(config)
+    } catch (err) {
+      setError(err.message || 'Failed to connect to Immich server')
+      setIsConnecting(false)
+    }
+  }
+
+  return (
+    <div className="max-w-md mx-auto">
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">Connect to Immich</h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Enter your Immich server URL and API key to get started.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="serverUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              Server URL
+            </label>
+            <input
+              type="url"
+              id="serverUrl"
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
+              placeholder="https://immich.example.com"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-1">
+              API Key
+            </label>
+            <input
+              type="password"
+              id="apiKey"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Your Immich API key"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Generate an API key in Immich: Account Settings → API Keys
+            </p>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isConnecting}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {isConnecting ? 'Connecting...' : 'Connect'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default ConnectionForm

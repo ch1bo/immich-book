@@ -1,2 +1,4 @@
 /.direnv/
 /node_modules/
+/dist/
+*.local
