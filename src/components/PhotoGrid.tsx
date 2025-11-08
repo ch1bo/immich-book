@@ -124,15 +124,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
+              {asset.fileCreatedAt && (
+                <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded backdrop-blur-sm">
+                  {new Date(asset.fileCreatedAt).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </div>
+              )}
             </div>
             {asset.exifInfo?.description && (
               <div className="p-4">
                 <p className="text-sm text-gray-700">{asset.exifInfo.description}</p>
-              </div>
-            )}
-            {asset.fileCreatedAt && (
-              <div className="px-4 pb-4 text-xs text-gray-500">
-                {new Date(asset.fileCreatedAt).toLocaleDateString()}
               </div>
             )}
           </div>
