@@ -14,7 +14,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }) {
     try {
       setIsLoading(true)
       setError(null)
-      const albumList = await getAllAlbums({})
+      const albumList = await getAllAlbums({shared: true})
       setAlbums(albumList)
     } catch (err) {
       setError(err.message || 'Failed to load albums')
