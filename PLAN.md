@@ -71,25 +71,25 @@ A web application that generates print-ready photo books from Immich albums, lev
 - Masonry.js (for masonry layouts)
 - Or study Immich's gallery component code
 
-### PDF Generation Options
+### PDF Generation (Current Implementation)
 
-**Option 1: Puppeteer (Server-side)**
-- Highest quality
-- Full control over rendering
-- Requires Node.js backend
-- Best for production use
-
-**Option 2: jsPDF + html2canvas (Client-side)**
-- Pure JavaScript in browser
-- No backend needed
-- Good for prototyping
-- May have quality limitations
-
-**Option 3: Browser Print API + Print CSS**
+**✅ Browser Print API + Print CSS** (Option 3)
 - Native browser functionality
-- Good quality
-- Simple implementation
+- Excellent quality with print-optimized CSS
+- Simple implementation, no dependencies
 - User initiates via print dialog
+- Can save as PDF directly from browser
+- **Chosen because:**
+  - No additional dependencies needed
+  - Page-based layout translates perfectly to print
+  - Users can adjust print settings in familiar UI
+  - Works offline
+  - Zero cost for PDF generation
+
+**Alternative Options (if needed in future):**
+- Puppeteer (server-side) - requires backend
+- jsPDF + html2canvas - quality limitations
+- @react-pdf/renderer - separate rendering pipeline
 
 ## Immich API Endpoints
 
@@ -119,13 +119,14 @@ GET /api/assets/{assetId}/original
 
 ## Implementation Phases
 
-### Phase 1: MVP (Minimum Viable Product)
-- [ ] Connect to Immich API with API key
-- [ ] List available albums
-- [ ] Select an album and load all assets
-- [ ] Display assets in simple grid layout
-- [ ] Show captions from asset descriptions
-- [ ] Basic PDF export using browser print
+### Phase 1: MVP (Minimum Viable Product) ✅ COMPLETED
+- [x] Connect to Immich API with API key
+- [x] List available albums
+- [x] Select an album and load all assets
+- [x] Display assets in justified layout (using @immich/justified-layout-wasm)
+- [x] Show captions from asset descriptions
+- [x] Page-based layout with print preview
+- [x] PDF export using browser print dialog
 
 ### Phase 2: Layout Enhancements
 - [ ] Multiple layout options (grid, masonry, justified)
