@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { getAlbumInfo, type AlbumResponseDto, type AssetResponseDto } from '@immich/sdk'
+import { JustifiedLayout } from '@immich/justified-layout-wasm'
 import type { ImmichConfig } from './ConnectionForm'
 
 interface PhotoGridProps {
@@ -12,11 +13,26 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [assets, setAssets] = useState<AssetResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [columns, setColumns] = useState(3)
+  const [containerWidth, setContainerWidth] = useState(1200)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [rowHeight, setRowHeight] = useState(250)
 
   useEffect(() => {
     loadAlbumAssets()
   }, [album.id])
+
+  // Update container width on resize
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth)
+      }
+    }
+
+    updateWidth()
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
 
   const loadAlbumAssets = async () => {
     try {
@@ -34,6 +50,27 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const handlePrint = () => {
     window.print()
   }
+
+  // Calculate justified layout
+  const layout = useMemo(() => {
+    if (assets.length === 0) return null
+
+    // Extract aspect ratios from assets
+    const aspectRatios = new Float32Array(
+      assets.map((asset) => {
+        const width = asset.exifInfo?.exifImageWidth || 1
+        const height = asset.exifInfo?.exifImageHeight || 1
+        return width / height
+      })
+    )
+
+    return new JustifiedLayout(aspectRatios, {
+      rowHeight,
+      rowWidth: containerWidth,
+      spacing: 4,
+      heightTolerance: 0.1,
+    })
+  }, [assets, containerWidth, rowHeight])
 
   if (isLoading) {
     return (
@@ -83,20 +120,20 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <label htmlFor="columns" className="text-sm font-medium text-gray-700">
-              Columns:
+            <label htmlFor="rowHeight" className="text-sm font-medium text-gray-700">
+              Row Height:
             </label>
-            <select
-              id="columns"
-              value={columns}
-              onChange={(e) => setColumns(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-              <option value={3}>3</option>
-              <option value={4}>4</option>
-            </select>
+            <input
+              type="range"
+              id="rowHeight"
+              min="150"
+              max="400"
+              step="10"
+              value={rowHeight}
+              onChange={(e) => setRowHeight(Number(e.target.value))}
+              className="w-32"
+            />
+            <span className="text-sm text-gray-600 w-12">{rowHeight}px</span>
           </div>
 
           <button
@@ -108,16 +145,27 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
         </div>
       </div>
 
-      {/* Photo Grid */}
+      {/* Photo Grid - Justified Layout */}
       <div
-        className="grid gap-6"
+        ref={containerRef}
+        className="relative bg-gray-50"
         style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          height: layout ? `${layout.containerHeight}px` : 'auto',
         }}
       >
-        {assets.map((asset) => (
-          <div key={asset.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="aspect-square bg-gray-100 relative">
+        {layout && assets.map((asset, index) => {
+          const box = layout.getPosition(index)
+          return (
+            <div
+              key={asset.id}
+              className="absolute overflow-hidden"
+              style={{
+                top: `${box.top}px`,
+                left: `${box.left}px`,
+                width: `${box.width}px`,
+                height: `${box.height}px`,
+              }}
+            >
               <img
                 src={`${immichConfig.baseUrl}/assets/${asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`}
                 alt={asset.originalFileName}
@@ -133,14 +181,14 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   })}
                 </div>
               )}
+              {asset.exifInfo?.description && (
+                <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/70 to-transparent text-white text-sm">
+                  {asset.exifInfo.description}
+                </div>
+              )}
             </div>
-            {asset.exifInfo?.description && (
-              <div className="p-4">
-                <p className="text-sm text-gray-700">{asset.exifInfo.description}</p>
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
