@@ -112,7 +112,7 @@ function PhotoGrid({ immichConfig, album, onBack }) {
           <div key={asset.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="aspect-square bg-gray-100 relative">
               <img
-                src={`${immichConfig.serverUrl}/api/assets/${asset.id}/thumbnail?size=preview&x-api-key=${immichConfig.apiKey}`}
+                src={`${immichConfig.baseUrl}/assets/${asset.id}/thumbnail?size=preview&x-api-key=${immichConfig.apiKey}`}
                 alt={asset.originalFileName}
                 className="w-full h-full object-cover"
                 loading="lazy"

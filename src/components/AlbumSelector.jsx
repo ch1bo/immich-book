@@ -75,7 +75,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }) {
             {album.albumThumbnailAssetId ? (
               <div className="aspect-video bg-gray-200 relative overflow-hidden">
                 <img
-                  src={`${immichConfig.serverUrl}/api/assets/${album.albumThumbnailAssetId}/thumbnail?size=preview&x-api-key=${immichConfig.apiKey}`}
+                  src={`${immichConfig.baseUrl}/assets/${album.albumThumbnailAssetId}/thumbnail?size=preview&x-api-key=${immichConfig.apiKey}`}
                   alt={album.albumName}
                   className="w-full h-full object-cover"
                 />

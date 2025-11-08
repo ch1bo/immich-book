@@ -14,6 +14,26 @@ A web application that generates print-ready photo books from Immich albums, lev
 
 ## Architecture
 
+### ⚠️ CORS Considerations (TODO - Needs Decision)
+
+**Current State (MVP):**
+- Pure client-side React app
+- Uses Vite dev proxy for development to bypass CORS
+- **Production deployment requires same-domain hosting** (e.g., `https://immich.example.com/book/`)
+
+**Future Options:**
+1. **Keep Simple (Current)**: Deploy as static app on same domain as Immich (via reverse proxy)
+   - Pros: Simple, no backend needed, cheap hosting
+   - Cons: Requires access to Immich server/reverse proxy config
+
+2. **Add Backend Proxy (Like ImmichFrame)**: Create Node.js/Express backend
+   - Pros: Works anywhere, can add caching/features later
+   - Cons: More complex deployment, need to run a server
+
+3. **Hybrid**: Static frontend + optional proxy backend for cross-domain scenarios
+
+**Recommendation**: Start with option 1 (same-domain deployment), add option 2 if community needs it.
+
 ### Components
 
 1. **Frontend Web App**

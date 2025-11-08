@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { init, getMyUser } from '@immich/sdk'
+import { init, getAllAlbums } from '@immich/sdk'
 
 function ConnectionForm({ onConnect }) {
   const [serverUrl, setServerUrl] = useState('')
@@ -13,17 +13,18 @@ function ConnectionForm({ onConnect }) {
     setIsConnecting(true)
 
     try {
-      // Remove trailing slash and add /api
-      const baseUrl = serverUrl.replace(/\/$/, '') + '/api'
+      // In development, use proxy path. In production, use full URL
+      const isDev = import.meta.env.DEV
+      const baseUrl = isDev ? '/api' : serverUrl.replace(/\/$/, '') + '/api'
 
       // Initialize the SDK
       init({ baseUrl, apiKey })
 
-      // Validate connection by getting user info
-      const user = await getMyUser()
+      // Validate connection by getting albums
+      const albums = await getAllAlbums({})
 
       // Store config in state and localStorage
-      const config = { serverUrl, apiKey, user }
+      const config = { serverUrl, apiKey, baseUrl }
       localStorage.setItem('immich-config', JSON.stringify(config))
       onConnect(config)
     } catch (err) {
@@ -39,6 +40,13 @@ function ConnectionForm({ onConnect }) {
         <p className="text-sm text-gray-600 mb-6">
           Enter your Immich server URL and API key to get started.
         </p>
+        {import.meta.env.DEV && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-xs text-blue-800">
+              <strong>Dev Mode:</strong> Using proxy to {import.meta.env.VITE_IMMICH_PROXY_TARGET || 'localhost:3000'}
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
