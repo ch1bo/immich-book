@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { init } from '@immich/sdk'
 import ConnectionForm from './components/ConnectionForm'
 import AlbumSelector from './components/AlbumSelector'
 import PhotoGrid from './components/PhotoGrid'
@@ -7,6 +8,22 @@ function App() {
   const [immichConfig, setImmichConfig] = useState(null)
   const [selectedAlbum, setSelectedAlbum] = useState(null)
 
+  // Load config from localStorage on mount
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('immich-config')
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig)
+        // Re-initialize the SDK with saved config
+        init({ baseUrl: config.baseUrl, apiKey: config.apiKey })
+        setImmichConfig(config)
+      } catch (err) {
+        console.error('Failed to load saved config:', err)
+        localStorage.removeItem('immich-config')
+      }
+    }
+  }, [])
+
   const handleConnect = (config) => {
     setImmichConfig(config)
   }
@@ -14,6 +31,7 @@ function App() {
   const handleDisconnect = () => {
     setImmichConfig(null)
     setSelectedAlbum(null)
+    localStorage.removeItem('immich-config')
   }
 
   const handleAlbumSelect = (album) => {
