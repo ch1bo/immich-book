@@ -189,29 +189,6 @@ GET /api/assets/{assetId}/original
 - Crop/fit mode
 - Color correction
 
-## Code Structure
-
-```
-/src
-  /components
-    AlbumSelector.jsx          # Album selection UI
-    PhotoGrid.jsx              # Main grid layout component
-    PhotoCard.jsx              # Individual photo with caption
-    LayoutControls.jsx         # Layout customization controls
-    PDFExporter.jsx            # PDF generation logic
-  /hooks
-    useImmichAPI.js            # Immich API integration
-    useLayout.js               # Layout calculation logic
-  /utils
-    immichClient.js            # API client wrapper
-    pdfGenerator.js            # PDF generation utilities
-    layoutEngine.js            # Layout algorithms
-  /styles
-    print.css                  # Print-specific styles
-  App.jsx                      # Main application component
-  config.js                    # Configuration constants
-```
-
 ## Technical Considerations
 
 ### Image Quality

@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
-import { getAllAlbums } from '@immich/sdk'
+import { getAllAlbums, type AlbumResponseDto } from '@immich/sdk'
+import type { ImmichConfig } from './ConnectionForm'
 
-function AlbumSelector({ immichConfig, onSelectAlbum }) {
-  const [albums, setAlbums] = useState([])
+interface AlbumSelectorProps {
+  immichConfig: ImmichConfig
+  onSelectAlbum: (album: AlbumResponseDto) => void
+}
+
+function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
+  const [albums, setAlbums] = useState<AlbumResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadAlbums()
@@ -17,7 +23,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }) {
       const albumList = await getAllAlbums({shared: true})
       setAlbums(albumList)
     } catch (err) {
-      setError(err.message || 'Failed to load albums')
+      setError((err as Error).message || 'Failed to load albums')
     } finally {
       setIsLoading(false)
     }

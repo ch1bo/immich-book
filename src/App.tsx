@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { init } from '@immich/sdk'
-import ConnectionForm from './components/ConnectionForm'
+import { init, type AlbumResponseDto } from '@immich/sdk'
+import ConnectionForm, { type ImmichConfig } from './components/ConnectionForm'
 import AlbumSelector from './components/AlbumSelector'
 import PhotoGrid from './components/PhotoGrid'
 
 function App() {
-  const [immichConfig, setImmichConfig] = useState(null)
-  const [selectedAlbum, setSelectedAlbum] = useState(null)
+  const [immichConfig, setImmichConfig] = useState<ImmichConfig | null>(null)
+  const [selectedAlbum, setSelectedAlbum] = useState<AlbumResponseDto | null>(null)
 
   // Load config from localStorage on mount
   useEffect(() => {
@@ -24,7 +24,7 @@ function App() {
     }
   }, [])
 
-  const handleConnect = (config) => {
+  const handleConnect = (config: ImmichConfig) => {
     setImmichConfig(config)
   }
 
@@ -34,7 +34,7 @@ function App() {
     localStorage.removeItem('immich-config')
   }
 
-  const handleAlbumSelect = (album) => {
+  const handleAlbumSelect = (album: AlbumResponseDto) => {
     setSelectedAlbum(album)
   }
 

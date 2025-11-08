@@ -1,13 +1,23 @@
 import { useState } from 'react'
 import { init, getAllAlbums } from '@immich/sdk'
 
-function ConnectionForm({ onConnect }) {
+export interface ImmichConfig {
+  serverUrl: string
+  apiKey: string
+  baseUrl: string
+}
+
+interface ConnectionFormProps {
+  onConnect: (config: ImmichConfig) => void
+}
+
+function ConnectionForm({ onConnect }: ConnectionFormProps) {
   const [serverUrl, setServerUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [isConnecting, setIsConnecting] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsConnecting(true)
@@ -21,14 +31,14 @@ function ConnectionForm({ onConnect }) {
       init({ baseUrl, apiKey })
 
       // Validate connection by getting albums
-      const albums = await getAllAlbums({})
+      await getAllAlbums({})
 
       // Store config in state and localStorage
-      const config = { serverUrl, apiKey, baseUrl }
+      const config: ImmichConfig = { serverUrl, apiKey, baseUrl }
       localStorage.setItem('immich-config', JSON.stringify(config))
       onConnect(config)
     } catch (err) {
-      setError(err.message || 'Failed to connect to Immich server')
+      setError((err as Error).message || 'Failed to connect to Immich server')
       setIsConnecting(false)
     }
   }

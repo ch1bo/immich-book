@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
-import { getAlbumInfo } from '@immich/sdk'
+import { getAlbumInfo, type AlbumResponseDto, type AssetResponseDto } from '@immich/sdk'
+import type { ImmichConfig } from './ConnectionForm'
 
-function PhotoGrid({ immichConfig, album, onBack }) {
-  const [assets, setAssets] = useState([])
+interface PhotoGridProps {
+  immichConfig: ImmichConfig
+  album: AlbumResponseDto
+  onBack: () => void
+}
+
+function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
+  const [assets, setAssets] = useState<AssetResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [columns, setColumns] = useState(3)
 
   useEffect(() => {
@@ -18,7 +25,7 @@ function PhotoGrid({ immichConfig, album, onBack }) {
       const albumData = await getAlbumInfo({ id: album.id })
       setAssets(albumData.assets || [])
     } catch (err) {
-      setError(err.message || 'Failed to load album assets')
+      setError((err as Error).message || 'Failed to load album assets')
     } finally {
       setIsLoading(false)
     }
