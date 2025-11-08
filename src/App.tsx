@@ -44,7 +44,7 @@ function App() {
           setIsLoadingAlbum(false)
         })
     }
-  }, [immichConfig, selectedAlbum])
+  }, [immichConfig])
 
   const handleConnect = (config: ImmichConfig) => {
     setImmichConfig(config)
