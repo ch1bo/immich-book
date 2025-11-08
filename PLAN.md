@@ -1,0 +1,452 @@
+# Immich Photo Book Generator
+
+## Project Overview
+
+A web application that generates print-ready photo books from Immich albums, leveraging Immich's existing photo management, metadata, and layout capabilities.
+
+## Why This Approach?
+
+- **Photos already organized**: Albums are curated in Immich
+- **Metadata available**: Captions/descriptions are stored with assets
+- **API access**: Immich provides full API access to albums and assets
+- **Layout inspiration**: Immich's album preview code already handles thumbnail layouts
+- **Open source**: Can leverage and learn from existing Immich codebase
+
+## Architecture
+
+### Components
+
+1. **Frontend Web App**
+   - React or Vue-based single-page application
+   - Connects to Immich API
+   - Provides layout preview and customization
+   - Generates print-ready PDF
+
+2. **Immich API Integration**
+   - Authentication via API key
+   - Album and asset retrieval
+   - Thumbnail/full-resolution image access
+   - Metadata extraction
+
+3. **Layout Engine**
+   - Grid-based layouts optimized for print
+   - Options: justified, masonry, square grid, custom
+   - Caption placement and styling
+   - Page break handling
+
+4. **PDF Export**
+   - High-quality output suitable for printing
+   - Proper margins, bleeds, and print specs
+   - CMYK color profile support (optional)
+
+## Technical Stack
+
+### Frontend
+- **Framework**: React (or Vue)
+- **Styling**: Tailwind CSS or similar
+- **State Management**: React hooks or Zustand
+
+### Layout Libraries
+- CSS Grid (native)
+- Masonry.js (for masonry layouts)
+- Or study Immich's gallery component code
+
+### PDF Generation Options
+
+**Option 1: Puppeteer (Server-side)**
+- Highest quality
+- Full control over rendering
+- Requires Node.js backend
+- Best for production use
+
+**Option 2: jsPDF + html2canvas (Client-side)**
+- Pure JavaScript in browser
+- No backend needed
+- Good for prototyping
+- May have quality limitations
+
+**Option 3: Browser Print API + Print CSS**
+- Native browser functionality
+- Good quality
+- Simple implementation
+- User initiates via print dialog
+
+## Immich API Endpoints
+
+### Authentication
+```
+POST /api/auth/login
+Headers: API key or user credentials
+```
+
+### Album Operations
+```
+GET /api/albums
+GET /api/albums/{albumId}
+GET /api/albums/{albumId}/assets
+```
+
+### Asset Operations
+```
+GET /api/assets/{assetId}
+GET /api/assets/{assetId}/thumbnail?size=preview
+GET /api/assets/{assetId}/original
+```
+
+### Metadata
+- Asset metadata includes: description, EXIF data, location, date
+- Captions typically stored in `description` field
+
+## Implementation Phases
+
+### Phase 1: MVP (Minimum Viable Product)
+- [ ] Connect to Immich API with API key
+- [ ] List available albums
+- [ ] Select an album and load all assets
+- [ ] Display assets in simple grid layout
+- [ ] Show captions from asset descriptions
+- [ ] Basic PDF export using browser print
+
+### Phase 2: Layout Enhancements
+- [ ] Multiple layout options (grid, masonry, justified)
+- [ ] Customize caption styling and placement
+- [ ] Page layout customization (margins, spacing)
+- [ ] Preview mode with page boundaries
+- [ ] Reorder/remove photos
+
+### Phase 3: Print Optimization
+- [ ] High-resolution image loading for print
+- [ ] Proper print margins and bleeds
+- [ ] Page size selection (A4, Letter, square formats)
+- [ ] Color profile options
+- [ ] Quality settings
+
+### Phase 4: Advanced Features
+- [ ] Save/load layout configurations
+- [ ] Templates for different book styles
+- [ ] Batch processing multiple albums
+- [ ] Integration with print services (Blurb, Lulu)
+- [ ] Cover page design
+
+## Data Flow
+
+1. **User Authentication**
+   - User provides Immich URL and API key
+   - App authenticates and stores credentials (local storage/session)
+
+2. **Album Selection**
+   - Fetch available albums from Immich
+   - User selects target album
+   - Load all assets with metadata
+
+3. **Layout Preview**
+   - Render assets in selected layout
+   - Display captions from metadata
+   - Allow customization
+
+4. **PDF Generation**
+   - Render final layout
+   - Load high-resolution images
+   - Generate PDF with proper specs
+   - Download or send to print service
+
+## Configuration Options
+
+### Layout Settings
+- Grid columns (2, 3, 4, etc.)
+- Spacing/gutters
+- Caption position (below, overlay, sidebar)
+- Caption font and size
+
+### Page Settings
+- Page size (A4, Letter, 8x8", 12x12", etc.)
+- Orientation (portrait, landscape, square)
+- Margins
+- Bleed area
+
+### Image Settings
+- Resolution (DPI)
+- Crop/fit mode
+- Color correction
+
+## Code Structure
+
+```
+/src
+  /components
+    AlbumSelector.jsx          # Album selection UI
+    PhotoGrid.jsx              # Main grid layout component
+    PhotoCard.jsx              # Individual photo with caption
+    LayoutControls.jsx         # Layout customization controls
+    PDFExporter.jsx            # PDF generation logic
+  /hooks
+    useImmichAPI.js            # Immich API integration
+    useLayout.js               # Layout calculation logic
+  /utils
+    immichClient.js            # API client wrapper
+    pdfGenerator.js            # PDF generation utilities
+    layoutEngine.js            # Layout algorithms
+  /styles
+    print.css                  # Print-specific styles
+  App.jsx                      # Main application component
+  config.js                    # Configuration constants
+```
+
+## Technical Considerations
+
+### Image Quality
+- Use high-resolution thumbnails or original images for print
+- Minimum 300 DPI for quality prints
+- Calculate required image dimensions based on page size
+
+### Performance
+- Lazy load images during preview
+- Batch API requests
+- Consider pagination for large albums
+- Optimize image loading for PDF generation
+
+### Browser Compatibility
+- Test PDF generation across browsers
+- Fallback options for older browsers
+- Consider progressive web app (PWA) features
+
+### Security
+- Store API keys securely (not in localStorage for production)
+- Validate Immich URL and API access
+- Handle authentication errors gracefully
+
+## Alternative Approaches
+
+### Hybrid Approach
+- Use Immich for photo management
+- Export metadata to JSON
+- Use external layout tool (Canva API, Adobe Express)
+
+### Plugin for Immich
+- Develop as Immich plugin/extension
+- Integrate directly into Immich UI
+- Could be contributed back to Immich project
+
+## Print Service Integration (Future)
+
+### Potential Services with APIs
+- Blurb (PDF upload)
+- Printful (API integration)
+- Lulu (PDF upload)
+- Local print shops
+
+### Workflow
+1. Generate PDF in app
+2. Upload to print service via API
+3. Configure book specs (cover, paper type, binding)
+4. Order directly from app
+
+## Resources
+
+### Immich Documentation
+- API Documentation: Check Immich GitHub/docs
+- Source code: github.com/immich-app/immich
+- Gallery layout code: Study `immich-app/immich/web/src/lib/components/photos-page/`
+
+### PDF Generation
+- Puppeteer: https://pptr.dev/
+- jsPDF: https://github.com/parallax/jsPDF
+- html2canvas: https://html2canvas.hertzen.com/
+
+### Print Specs
+- Standard book sizes and DPI requirements
+- Bleed and margin specifications
+- Color profiles (sRGB vs CMYK)
+
+## Product Positioning & Marketing
+
+### Inspiration: ImmichFrame Approach
+
+ImmichFrame provides an excellent model for marketing an Immich community tool:
+- **Clear value proposition**: "Turn your Immich albums into beautiful photo books"
+- **Simple setup**: URL + API key (proven UX pattern in Immich ecosystem)
+- **Multiple deployment options**: Web app, Docker, desktop apps, mobile
+- **Beautiful presentation**: Focus on visual appeal and user experience
+- **Community integration**: Part of the Immich ecosystem
+
+### Product Name Ideas
+
+- **ImmichBook** - Simple, follows naming convention
+- **Immich Photo Book Creator**
+- **Album Press** (for Immich)
+- **Immich Print Studio**
+- **BookFrame** - Companion to ImmichFrame
+
+### Target Audience
+
+**Primary Users:**
+- Immich users who want physical photo books
+- Families wanting to preserve memories
+- Event organizers (weddings, vacations, family reunions)
+- People migrating from Google Photos who miss photo book features
+
+**Use Cases:**
+- Annual family photo books
+- Vacation albums
+- Baby's first year
+- Wedding albums
+- Gift photo books for grandparents
+- Year-in-review books
+
+### Value Propositions
+
+1. **Privacy-First**: Keep your photos on your server, generate books locally
+2. **Cost-Effective**: No subscription, export to any print service
+3. **Customizable**: Full control over layout, captions, and design
+4. **AI-Assisted**: Smart layouts that make your photos look great
+5. **Integration**: Works seamlessly with your existing Immich setup
+
+### Go-to-Market Strategy
+
+**Phase 1: Community Launch**
+- Share in Immich Discord/GitHub discussions
+- Post on r/selfhosted, r/immich
+- Add to awesome-immich list
+- Focus on early adopter feedback
+
+**Phase 2: Polish & Documentation**
+- Professional landing page (like immichframe.online)
+- Video tutorials
+- Template gallery
+- Print service integration guides
+
+**Phase 3: Ecosystem Growth**
+- Desktop apps (Electron) for Windows/Mac/Linux
+- Mobile apps for on-device preview
+- Print service partnerships (Blurb, Lulu API integration)
+- Premium templates (optional paid add-on)
+
+**Phase 4: Potential Business Model** (Optional)
+- Core tool remains free and open source
+- Premium templates marketplace
+- Direct print integration service (handle upload/ordering)
+- White-label for print services
+- Support/hosting service for non-technical users
+
+### Distribution Channels
+
+**Free & Open Source:**
+- GitHub repository
+- Docker Hub
+- npm package (if building CLI)
+- Immich community showcase
+
+**Web Hosting:**
+- Self-hosted via Docker
+- Optional hosted demo instance (read-only)
+- Netlify/Vercel for static web version
+
+**App Stores** (Future):
+- Chrome Web Store (PWA)
+- Microsoft Store
+- Mac App Store
+- Linux Snap/Flatpak
+
+### Competitive Advantages
+
+**vs. Traditional Photo Book Services:**
+- Privacy: Photos never leave your control
+- Cost: No per-book fees for digital exports
+- Flexibility: Use any print service
+- Integration: Works with your existing photo library
+
+**vs. Manual PDF Creation:**
+- Automated layouts
+- Professional templates
+- Batch processing
+- Smart caption placement
+
+**vs. Other Immich Tools:**
+- Focused on one thing: beautiful photo books
+- Print-optimized output
+- Professional-grade PDF generation
+
+### Key Features for Marketing
+
+**Highlight in Landing Page:**
+- ✨ One-click album import from Immich
+- 🎨 AI-powered smart layouts
+- 📝 Automatic caption placement from metadata
+- 🖨️ Print-ready PDF export (300+ DPI)
+- 🎯 Multiple layout templates
+- 🔒 100% private - photos never uploaded
+- 🆓 Free and open source
+- ⚡ Fast setup (2 minutes)
+
+### Community Engagement
+
+**Build in Public:**
+- Regular development updates
+- Feature voting
+- Open roadmap
+- Contributor-friendly
+
+**Content Marketing:**
+- Blog posts: "Creating a Year-in-Review Photo Book from Immich"
+- Tutorials: "Best Practices for Photo Book Layouts"
+- Case studies: User stories and examples
+- Comparison guides: "Photo Book Services vs. Self-Hosted"
+
+### Success Metrics
+
+**Community Adoption:**
+- GitHub stars
+- Docker pulls
+- Active installations
+- Community contributions
+
+**User Satisfaction:**
+- Feature requests addressed
+- Bug reports resolved
+- User testimonials
+- Showcase submissions
+
+### Partnerships & Integrations
+
+**Print Services:**
+- Partner with print-on-demand services
+- Affiliate programs
+- API integrations for one-click ordering
+
+**Immich Ecosystem:**
+- Feature in Immich newsletter
+- Contribute to Immich docs
+- Collaborate with other tool creators
+
+## Next Steps
+
+1. Set up development environment
+2. Create basic React app with Immich API connection
+3. Implement album browsing and asset loading
+4. Build simple grid layout with captions
+5. Add basic PDF export functionality
+6. Iterate on layout and customization options
+7. Launch alpha version in Immich community
+8. Gather feedback and iterate
+9. Create landing page and documentation
+10. Pursue partnerships with print services
+
+## Notes
+
+- Start simple: MVP with basic grid and browser print
+- Learn from Immich's existing gallery layout code
+- Follow ImmichFrame's marketing approach
+- Keep it open source with optional premium features
+- Focus on beautiful output from day one
+- Consider contributing back to Immich if useful
+- Keep print specifications in mind from the start
+- Test with real albums of varying sizes
+- Build community early and often
+
+---
+
+**Created**: 2025-11-08
+**Updated**: 2025-11-08
+**Purpose**: Document project idea for creating photo books from Immich albums
+**Next**: Implement with Claude Code
+**Potential**: Real product opportunity if useful to creator and community
