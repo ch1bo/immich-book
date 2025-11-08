@@ -20,30 +20,19 @@ A web application that generates print-ready photo books from your Immich albums
 
 ### Prerequisites
 
-- Node.js 18+
 - An Immich server with API access
 - An Immich API key (generate in: Account Settings → API Keys)
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd immich-book
-
-# Install dependencies
 npm install
 
 # Configure development proxy (for CORS)
 cp .env.example .env
-# Edit .env and set VITE_IMMICH_PROXY_TARGET to your Immich server URL
-# Example: VITE_IMMICH_PROXY_TARGET=https://photos.example.com
 
-# Start development server
-npm run dev
+npm start
 ```
-
-The app will be available at `http://localhost:5173/`
 
 #### Development Configuration
 
