@@ -61,6 +61,30 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [spacing, setSpacing] = useState(20) // in pixels
   const [filterVideos, setFilterVideos] = useState(true) // exclude videos from layout
 
+  // Custom aspect ratios per asset (for layout manipulation)
+  const [customAspectRatios, setCustomAspectRatios] = useState<Map<string, number>>(() => {
+    // Load from localStorage on mount
+    const stored = localStorage.getItem(`immich-book-aspect-ratios-${album.id}`)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        return new Map(Object.entries(parsed))
+      } catch (e) {
+        console.error('Failed to parse stored aspect ratios:', e)
+      }
+    }
+    return new Map()
+  })
+
+  // Drag state for aspect ratio adjustment
+  const [aspectDragState, setAspectDragState] = useState<{
+    assetId: string
+    edge: 'left' | 'right'
+    startX: number
+    originalAspectRatio: number
+    originalWidth: number
+  } | null>(null)
+
   // Page settings
   const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('CUSTOM')
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
@@ -72,6 +96,16 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   useEffect(() => {
     loadAlbumAssets()
   }, [album.id])
+
+  // Save custom aspect ratios to localStorage whenever they change
+  useEffect(() => {
+    if (customAspectRatios.size > 0) {
+      const obj = Object.fromEntries(customAspectRatios)
+      localStorage.setItem(`immich-book-aspect-ratios-${album.id}`, JSON.stringify(obj))
+    } else {
+      localStorage.removeItem(`immich-book-aspect-ratios-${album.id}`)
+    }
+  }, [customAspectRatios, album.id])
 
   const loadAlbumAssets = async () => {
     try {
@@ -90,6 +124,78 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     }
   }
 
+  // Handle aspect ratio drag start
+  const handleAspectDragStart = (
+    assetId: string,
+    edge: 'left' | 'right',
+    aspectRatio: number,
+    width: number,
+    event: React.MouseEvent
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setAspectDragState({
+      assetId,
+      edge,
+      startX: event.clientX,
+      originalAspectRatio: aspectRatio,
+      originalWidth: width,
+    })
+  }
+
+  // Reset aspect ratio for a specific asset
+  const handleResetAspectRatio = (assetId: string, event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setCustomAspectRatios(prev => {
+      const next = new Map(prev)
+      next.delete(assetId)
+      return next
+    })
+  }
+
+  // Reset all aspect ratio customizations
+  const handleResetAllCustomizations = () => {
+    setCustomAspectRatios(new Map())
+  }
+
+  // Handle aspect ratio drag
+  useEffect(() => {
+    if (!aspectDragState) return
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const deltaX = event.clientX - aspectDragState.startX
+      // Convert from 72 DPI screen to 300 DPI layout
+      const deltaPixels = deltaX * (300 / 72)
+
+      // Calculate new width based on edge being dragged
+      const widthDelta = aspectDragState.edge === 'right' ? deltaPixels : -deltaPixels
+      const newWidth = Math.max(50, aspectDragState.originalWidth + widthDelta)
+
+      // Calculate new aspect ratio (width stays same height, so aspect ratio changes)
+      const heightFromOriginal = aspectDragState.originalWidth / aspectDragState.originalAspectRatio
+      const newAspectRatio = newWidth / heightFromOriginal
+
+      setCustomAspectRatios(prev => {
+        const next = new Map(prev)
+        next.set(aspectDragState.assetId, newAspectRatio)
+        return next
+      })
+    }
+
+    const handleMouseUp = () => {
+      setAspectDragState(null)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [aspectDragState])
+
   // Filter assets based on user preferences
   const filteredAssets = useMemo(() => {
     if (!filterVideos) return assets
@@ -107,8 +213,9 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       customWidth,
       customHeight,
       combinePages,
+      customAspectRatios,
     })
-  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages])
+  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages, customAspectRatios])
 
   // Determine pageLayout based on combinePages setting
   const pageLayout = combinePages ? 'singlePage' : 'twoPageLeft'
@@ -162,6 +269,20 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           <p className="text-gray-600 mt-1">
             {filteredAssets.length} {filteredAssets.length !== assets.length && `of ${assets.length}`} photos
           </p>
+          {customAspectRatios.size > 0 && (
+            <div className="flex items-center gap-3 mt-2">
+              <p className="text-sm text-gray-600">
+                {customAspectRatios.size} customization{customAspectRatios.size !== 1 ? 's' : ''}
+              </p>
+              <button
+                onClick={handleResetAllCustomizations}
+                className="text-sm px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow-md transition-colors"
+                title={`Reset ${customAspectRatios.size} customization${customAspectRatios.size !== 1 ? 's' : ''}`}
+              >
+                Reset All
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -446,11 +567,23 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 {/* Photos */}
                 {page.photos.map((photoBox) => {
                   const imageUrl = `${immichConfig.baseUrl}/assets/${photoBox.asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`
+                  const isDragging = aspectDragState?.assetId === photoBox.asset.id
+
+                  // Calculate current aspect ratio
+                  const naturalWidth = photoBox.asset.exifInfo?.exifImageWidth || 1
+                  const naturalHeight = photoBox.asset.exifInfo?.exifImageHeight || 1
+                  let currentAspectRatio = naturalWidth / naturalHeight
+                  if (photoBox.asset.exifInfo?.orientation == "6") {
+                    currentAspectRatio = naturalHeight / naturalWidth
+                  }
+                  // Use custom aspect ratio if set
+                  const aspectRatio = customAspectRatios.get(photoBox.asset.id) || currentAspectRatio
+                  const isCustomized = customAspectRatios.has(photoBox.asset.id)
 
                   return (
                     <div
                       key={photoBox.asset.id}
-                      className="absolute overflow-hidden"
+                      className="absolute overflow-hidden group"
                       style={{
                         left: `${toPoints(photoBox.x)}px`,
                         top: `${toPoints(photoBox.y)}px`,
@@ -478,6 +611,42 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                           {photoBox.asset.exifInfo.description}
                         </div>
                       )}
+
+                      {/* Customization indicator */}
+                      {isCustomized && (
+                        <div className="absolute top-2 left-2 w-2 h-2 bg-blue-500 rounded-full shadow-lg" title="Aspect ratio customized" />
+                      )}
+
+                      {/* Reset button - shown on hover for customized images */}
+                      {isCustomized && (
+                        <div
+                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded shadow-lg text-xs font-medium"
+                          onClick={(e) => handleResetAspectRatio(photoBox.asset.id, e)}
+                          title="Reset aspect ratio"
+                        >
+                          Reset
+                        </div>
+                      )}
+
+                      {/* Left drag handle */}
+                      <div
+                        className={`absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize transition-colors ${
+                          isDragging && aspectDragState.edge === 'left'
+                            ? 'bg-blue-500'
+                            : 'bg-transparent group-hover:bg-blue-400/50'
+                        }`}
+                        onMouseDown={(e) => handleAspectDragStart(photoBox.asset.id, 'left', aspectRatio, photoBox.width, e)}
+                      />
+
+                      {/* Right drag handle */}
+                      <div
+                        className={`absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize transition-colors ${
+                          isDragging && aspectDragState.edge === 'right'
+                            ? 'bg-blue-500'
+                            : 'bg-transparent group-hover:bg-blue-400/50'
+                        }`}
+                        onMouseDown={(e) => handleAspectDragStart(photoBox.asset.id, 'right', aspectRatio, photoBox.width, e)}
+                      />
                     </div>
                   )
                 })}

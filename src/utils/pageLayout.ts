@@ -54,6 +54,7 @@ export interface LayoutOptions {
   customWidth?: number // in pixels
   customHeight?: number // in pixels
   combinePages?: boolean // combine two pages into one PDF page
+  customAspectRatios?: Map<string, number> // custom aspect ratios per asset ID
 }
 
 /**
@@ -66,7 +67,7 @@ export function calculatePageLayout(
 ): Page[] {
   if (assets.length === 0) return []
 
-  const { pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight } = options
+  const { pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, customAspectRatios } = options
 
   // Determine page dimensions in pixels
   let pageDimensions: { width: number; height: number }
@@ -88,6 +89,13 @@ export function calculatePageLayout(
   // Calculate aspect ratios for justified layout
   const aspectRatios = new Float32Array(
     assets.map((asset) => {
+      // Check if there's a custom aspect ratio for this asset
+      const customRatio = customAspectRatios?.get(asset.id)
+      if (customRatio) {
+        return customRatio
+      }
+
+      // Otherwise use the asset's natural aspect ratio
       const width = asset.exifInfo?.exifImageWidth || 1
       const height = asset.exifInfo?.exifImageHeight || 1
       if (asset.exifInfo?.orientation == "6") {
