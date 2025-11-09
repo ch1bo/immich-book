@@ -14,26 +14,6 @@ A web application that generates print-ready photo books from Immich albums, lev
 
 ## Architecture
 
-### ⚠️ CORS Considerations (TODO - Needs Decision)
-
-**Current State (MVP):**
-- Pure client-side React app
-- Uses Vite dev proxy for development to bypass CORS
-- **Production deployment requires same-domain hosting** (e.g., `https://immich.example.com/book/`)
-
-**Future Options:**
-1. **Keep Simple (Current)**: Deploy as static app on same domain as Immich (via reverse proxy)
-   - Pros: Simple, no backend needed, cheap hosting
-   - Cons: Requires access to Immich server/reverse proxy config
-
-2. **Add Backend Proxy (Like ImmichFrame)**: Create Node.js/Express backend
-   - Pros: Works anywhere, can add caching/features later
-   - Cons: More complex deployment, need to run a server
-
-3. **Hybrid**: Static frontend + optional proxy backend for cross-domain scenarios
-
-**Recommendation**: Start with option 1 (same-domain deployment), add option 2 if community needs it.
-
 ### Components
 
 1. **Frontend Web App**
@@ -59,37 +39,41 @@ A web application that generates print-ready photo books from Immich albums, lev
    - Proper margins, bleeds, and print specs
    - CMYK color profile support (optional)
 
-## Technical Stack
+### ⚠️ CORS Considerations (TODO - Needs Decision)
 
-### Frontend
-- **Framework**: React (or Vue)
-- **Styling**: Tailwind CSS or similar
-- **State Management**: React hooks or Zustand
+**Current State (MVP):**
+- Pure client-side React app
+- Uses Vite dev proxy for development to bypass CORS
+- **Production deployment requires same-domain hosting** (e.g., `https://immich.example.com/book/`)
 
-### Layout Libraries
-- CSS Grid (native)
-- Masonry.js (for masonry layouts)
-- Or study Immich's gallery component code
+**Future Options:**
+1. **Keep Simple (Current)**: Deploy as static app on same domain as Immich (via reverse proxy)
+   - Pros: Simple, no backend needed, cheap hosting
+   - Cons: Requires access to Immich server/reverse proxy config
 
-### PDF Generation (Current Implementation)
+2. **Add Backend Proxy (Like ImmichFrame)**: Create Node.js/Express backend
+   - Pros: Works anywhere, can add caching/features later
+   - Cons: More complex deployment, need to run a server
 
-**✅ Browser Print API + Print CSS** (Option 3)
-- Native browser functionality
-- Excellent quality with print-optimized CSS
-- Simple implementation, no dependencies
-- User initiates via print dialog
-- Can save as PDF directly from browser
-- **Chosen because:**
-  - No additional dependencies needed
-  - Page-based layout translates perfectly to print
-  - Users can adjust print settings in familiar UI
-  - Works offline
-  - Zero cost for PDF generation
+3. **Hybrid**: Static frontend + optional proxy backend for cross-domain scenarios
 
-**Alternative Options (if needed in future):**
-- Puppeteer (server-side) - requires backend
-- jsPDF + html2canvas - quality limitations
-- @react-pdf/renderer - separate rendering pipeline
+**Recommendation**: Start with option 1 (same-domain deployment), add option 2 if community needs it.
+
+### PDF Generation
+
+- Using @react-pdf/renderer (based on pdfkit)
+- React-based PDF generation
+- High-quality output with full control
+- Live preview with PDFViewer component
+- Built-in download via toolbar
+
+**Current Limitations:**
+- pdfkit (internal to react-pdf) produces 72 DPI output regardless of settings
+- Solution: Calculate layout at 300 DPI, convert to 72 DPI points for PDF output
+- Phase 2: Fix pdfkit to support high-quality PDF/X output at 300 DPI
+
+**Previous Approach:**
+- Browser Print API + Print CSS - worked but lacked custom page size support
 
 ## Immich API Endpoints
 
@@ -119,35 +103,30 @@ GET /api/assets/{assetId}/original
 
 ## Implementation Phases
 
-### Phase 1: MVP (Minimum Viable Product) ✅ COMPLETED
+### Phase 1: MVP (Minimum Viable Product)
 - [x] Connect to Immich API with API key
 - [x] List available albums
 - [x] Select an album and load all assets
 - [x] Display assets in justified layout (using @immich/justified-layout-wasm)
-- [x] Show captions from asset descriptions
-- [x] Page-based layout with print preview
-- [x] PDF export using browser print dialog
+- [x] Show captions (dates and descriptions) from asset metadata
+- [x] Page-based layout with custom dimensions
+- [x] PDF export using @react-pdf/renderer with live preview
+- [x] Support for standard page sizes (A4, Letter, A3) and custom dimensions
+- [x] Adjustable layout parameters (margin, row height, spacing)
+- [x] Combine pages feature (dual-page layout for print shops)
 
-### Phase 2: Layout Enhancements
-- [ ] Multiple layout options (grid, masonry, justified)
-- [ ] Customize caption styling and placement
-- [ ] Page layout customization (margins, spacing)
-- [ ] Preview mode with page boundaries
-- [ ] Reorder/remove photos
+### Phase 2: Advanced selection
+- [ ] Improved preview
+- [ ] Change general sorting
+- [ ] Filter assets
+- [ ] Customize row heights
+- [ ] Re-arrange assets
 
-### Phase 3: Print Optimization
-- [ ] High-resolution image loading for print
-- [ ] Proper print margins and bleeds
-- [ ] Page size selection (A4, Letter, square formats)
-- [ ] Color profile options
+### Phase 3: Print Quality
+- [ ] Fix pdfkit to support high-quality PDF/X output at 300 DPI
+- [ ] Proper print bleeds
+- [ ] Color profile options (sRGB, CMYK)
 - [ ] Quality settings
-
-### Phase 4: Advanced Features
-- [ ] Save/load layout configurations
-- [ ] Templates for different book styles
-- [ ] Batch processing multiple albums
-- [ ] Integration with print services (Blurb, Lulu)
-- [ ] Cover page design
 
 ## Data Flow
 
@@ -161,34 +140,15 @@ GET /api/assets/{assetId}/original
    - Load all assets with metadata
 
 3. **Layout Preview**
-   - Render assets in selected layout
+   - Render assets in justified layout
    - Display captions from metadata
-   - Allow customization
+   - Allow customization like sort, filter and re-orderings
+   - Live preview with target page size and margins
 
 4. **PDF Generation**
    - Render final layout
    - Load high-resolution images
    - Generate PDF with proper specs
-   - Download or send to print service
-
-## Configuration Options
-
-### Layout Settings
-- Grid columns (2, 3, 4, etc.)
-- Spacing/gutters
-- Caption position (below, overlay, sidebar)
-- Caption font and size
-
-### Page Settings
-- Page size (A4, Letter, 8x8", 12x12", etc.)
-- Orientation (portrait, landscape, square)
-- Margins
-- Bleed area
-
-### Image Settings
-- Resolution (DPI)
-- Crop/fit mode
-- Color correction
 
 ## Technical Considerations
 
@@ -269,7 +229,7 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 
 ### Product Name Ideas
 
-- **ImmichBook** - Simple, follows naming convention
+- **Immich Book** - Simple, follows naming convention
 - **Immich Photo Book Creator**
 - **Album Press** (for Immich)
 - **Immich Print Studio**
@@ -433,18 +393,9 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 
 - Start simple: MVP with basic grid and browser print
 - Learn from Immich's existing gallery layout code
-- Follow ImmichFrame's marketing approach
 - Keep it open source with optional premium features
 - Focus on beautiful output from day one
 - Consider contributing back to Immich if useful
 - Keep print specifications in mind from the start
 - Test with real albums of varying sizes
 - Build community early and often
-
----
-
-**Created**: 2025-11-08
-**Updated**: 2025-11-08
-**Purpose**: Document project idea for creating photo books from Immich albums
-**Next**: Implement with Claude Code
-**Potential**: Real product opportunity if useful to creator and community

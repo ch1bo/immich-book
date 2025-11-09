@@ -11,9 +11,9 @@ A web application that generates print-ready photo books from your Immich albums
 
 - 🔐 Connect to your Immich server with API key authentication
 - 📚 Browse and select from all your albums
-- 🖼️ Display photos in customizable grid layouts (1-4 columns)
+- 🖼️ Display photos in a customizable layouts (similar to normal Immich view)
 - 📝 Automatically show captions from asset descriptions
-- 🖨️ Export to PDF using optimized browser print (with page preview)
+- 🖨️ Export to PDF with page preview
 - 🎨 Clean, responsive UI built with React and Tailwind CSS
 
 ## Quick Start
@@ -97,24 +97,3 @@ location /book/ {
     try_files $uri $uri/ /book/index.html;
 }
 ```
-
-See [PLAN.md](./PLAN.md) for discussion about adding a backend proxy for cross-domain deployments.
-
-## Tech Stack
-
-- **React 18** - UI framework
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **TypeScript** - Type safety
-- **@immich/sdk** - Official Immich TypeScript SDK
-- **@immich/justified-layout-wasm** - Blazingly fast justified layout algorithm
-- **Browser Print API** - Native PDF generation via print dialog
-
-## Roadmap
-
-See [PLAN.md](./PLAN.md) for the full feature roadmap including:
-- Multiple layout options (masonry, justified)
-- High-resolution image loading for print
-- Print specifications (margins, bleeds, page sizes)
-- Layout templates
-- And more...
