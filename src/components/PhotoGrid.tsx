@@ -178,9 +178,9 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     id="customWidth"
                     value={customWidth}
                     onChange={(e) => setCustomWidth(Number(e.target.value))}
-                    min="590"
-                    max="11811"
-                    step="10"
+                    min="100"
+                    max="20000"
+                    step="1"
                     className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <span className="text-xs text-gray-600">px</span>
@@ -194,9 +194,9 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     id="customHeight"
                     value={customHeight}
                     onChange={(e) => setCustomHeight(Number(e.target.value))}
-                    min="590"
-                    max="11811"
-                    step="10"
+                    min="100"
+                    max="20000"
+                    step="1"
                     className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <span className="text-xs text-gray-600">px</span>
