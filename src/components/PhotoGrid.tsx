@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getAlbumInfo, type AlbumResponseDto, type AssetResponseDto } from '@immich/sdk'
+import { PDFViewer } from '@react-pdf/renderer'
 import { calculatePageLayout } from '../utils/pageLayout'
 import type { ImmichConfig } from './ConnectionForm'
+import { PDFDocument } from './PDFDocument'
 
 interface PhotoGridProps {
   immichConfig: ImmichConfig
@@ -13,15 +15,16 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [assets, setAssets] = useState<AssetResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [rowHeight, setRowHeight] = useState(250)
-  const spacing = 4 // Fixed spacing between photos
+
+  const [rowHeight, setRowHeight] = useState(758) // in pixels
+  const [spacing, setSpacing] = useState(20) // in pixels
 
   // Page settings
-  const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('A4')
+  const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('CUSTOM')
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
-  const [margin, setMargin] = useState(50)
-  const [customWidth, setCustomWidth] = useState(21.0) // Default A4 width in cm
-  const [customHeight, setCustomHeight] = useState(29.7) // Default A4 height in cm
+  const [margin, setMargin] = useState(118) // in pixels (10mm at 300 DPI)
+  const [customWidth, setCustomWidth] = useState(2708) // saal digital default
+  const [customHeight, setCustomHeight] = useState(3402) // saal digital default
 
   useEffect(() => {
     loadAlbumAssets()
@@ -53,9 +56,11 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     })
   }, [assets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight])
 
-  const handlePrint = () => {
-    window.print()
-  }
+  // PDF document for download link
+  const pdfDocument = useMemo(
+    () => <PDFDocument pages={pages} immichConfig={immichConfig} />,
+    [pages, immichConfig]
+  )
 
   if (isLoading) {
     return (
@@ -104,28 +109,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label htmlFor="rowHeight" className="text-sm font-medium text-gray-700">
-                Row Height:
-              </label>
-              <input
-                type="range"
-                id="rowHeight"
-                min="150"
-                max="400"
-                step="10"
-                value={rowHeight}
-                onChange={(e) => setRowHeight(Number(e.target.value))}
-                className="w-32"
-              />
-              <span className="text-sm text-gray-600 w-12">{rowHeight}px</span>
-            </div>
-          </div>
-
           <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <span className="text-sm font-semibold text-gray-700">PDF Export:</span>
-
             <div className="flex items-center gap-2">
               <label htmlFor="pageSize" className="text-sm text-gray-700">
                 Size:
@@ -154,12 +138,12 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     id="customWidth"
                     value={customWidth}
                     onChange={(e) => setCustomWidth(Number(e.target.value))}
-                    min="5"
-                    max="100"
-                    step="0.1"
+                    min="590"
+                    max="11811"
+                    step="10"
                     className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-xs text-gray-600">cm</span>
+                  <span className="text-xs text-gray-600">px</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <label htmlFor="customHeight" className="text-sm text-gray-700">
@@ -170,12 +154,12 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     id="customHeight"
                     value={customHeight}
                     onChange={(e) => setCustomHeight(Number(e.target.value))}
-                    min="5"
-                    max="100"
-                    step="0.1"
+                    min="590"
+                    max="11811"
+                    step="10"
                     className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-xs text-gray-600">cm</span>
+                  <span className="text-xs text-gray-600">px</span>
                 </div>
               </>
             ) : (
@@ -204,78 +188,56 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 id="margin"
                 value={margin}
                 onChange={(e) => setMargin(Number(e.target.value))}
-                min="10"
-                max="100"
-                step="5"
+                min="0"
+                max="590"
+                step="10"
                 className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <span className="text-xs text-gray-600">px</span>
             </div>
 
-            <button
-              onClick={handlePrint}
-              className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
-            >
-              Print / Save as PDF
-            </button>
+            <div className="flex items-center gap-2">
+              <label htmlFor="rowHeight" className="text-sm text-gray-700">
+                Row Height:
+              </label>
+              <input
+                type="number"
+                id="rowHeight"
+                value={rowHeight}
+                onChange={(e) => setRowHeight(Number(e.target.value))}
+                min="118"
+                max="1181"
+                step="10"
+                className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-xs text-gray-600">px</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="spacing" className="text-sm text-gray-700">
+                Spacing:
+              </label>
+              <input
+                type="number"
+                id="spacing"
+                value={spacing}
+                onChange={(e) => setSpacing(Number(e.target.value))}
+                min="0"
+                max="100"
+                step="1"
+                className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-xs text-gray-600">px</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Photo Book Pages */}
-      <div className="space-y-8">
-        {pages.map((page) => (
-          <div key={page.pageNumber} className="relative">
-            {/* Page container */}
-            <div
-              className="relative bg-white shadow-lg mx-auto print-page"
-              style={{
-                width: `${page.width}px`,
-                height: `${page.height}px`,
-              }}
-            >
-              {/* Page number (visible in preview only) */}
-              <div className="absolute top-4 left-4 no-print px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                Page {page.pageNumber} of {pages.length}
-              </div>
-
-              {/* Photos */}
-              {page.photos.map((photoBox) => (
-                <div
-                  key={photoBox.asset.id}
-                  className="absolute overflow-hidden"
-                  style={{
-                    left: `${photoBox.x}px`,
-                    top: `${photoBox.y}px`,
-                    width: `${photoBox.width}px`,
-                    height: `${photoBox.height}px`,
-                  }}
-                >
-                  <img
-                    src={`${immichConfig.baseUrl}/assets/${photoBox.asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`}
-                    alt={photoBox.asset.originalFileName}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  {photoBox.asset.fileCreatedAt && (
-                    <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded backdrop-blur-sm">
-                      {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </div>
-                  )}
-                  {photoBox.asset.exifInfo?.description && (
-                    <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/70 to-transparent text-white text-sm">
-                      {photoBox.asset.exifInfo.description}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+      {/* PDF Preview */}
+      <div className="w-full" style={{ height: 'calc(100vh - 300px)' }}>
+        <PDFViewer width="100%" height="100%" showToolbar={true}>
+          {pdfDocument}
+        </PDFViewer>
       </div>
     </div>
   )

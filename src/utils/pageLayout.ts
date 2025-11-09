@@ -22,36 +22,37 @@ export interface Page {
   height: number
 }
 
-// Page sizes in pixels at 96 DPI (web) - will be converted for print
+// Convert millimeters to pixels (assuming 300 DPI)
+// 1 inch = 25.4 mm = 300 pixels
+// 1 mm = 300/25.4 = 11.811023622047244 pixels
+export function mmToPixels(mm: number): number {
+  return Math.round(mm * 11.811023622047244)
+}
+
+// Page sizes in pixels (at 300 DPI)
 export const PAGE_SIZES: Record<string, Record<string, PageSize>> = {
   A4: {
-    portrait: { width: 794, height: 1123, name: 'A4' },
-    landscape: { width: 1123, height: 794, name: 'A4' },
+    portrait: { width: mmToPixels(210), height: mmToPixels(297), name: 'A4' },    // 210mm x 297mm
+    landscape: { width: mmToPixels(297), height: mmToPixels(210), name: 'A4' },
   },
   LETTER: {
-    portrait: { width: 816, height: 1056, name: 'LETTER' },
-    landscape: { width: 1056, height: 816, name: 'LETTER' },
+    portrait: { width: mmToPixels(215.9), height: mmToPixels(279.4), name: 'LETTER' },    // 8.5" x 11"
+    landscape: { width: mmToPixels(279.4), height: mmToPixels(215.9), name: 'LETTER' },
   },
   A3: {
-    portrait: { width: 1123, height: 1587, name: 'A3' },
-    landscape: { width: 1587, height: 1123, name: 'A3' },
+    portrait: { width: mmToPixels(297), height: mmToPixels(420), name: 'A3' },    // 297mm x 420mm
+    landscape: { width: mmToPixels(420), height: mmToPixels(297), name: 'A3' },
   },
 }
 
 export interface LayoutOptions {
   pageSize: 'A4' | 'LETTER' | 'A3' | 'CUSTOM'
   orientation: 'portrait' | 'landscape'
-  margin: number
-  rowHeight: number
-  spacing: number
-  customWidth?: number // in cm
-  customHeight?: number // in cm
-}
-
-// Convert centimeters to pixels at 96 DPI (web display)
-// 1 cm = 37.795275591 pixels at 96 DPI
-export function cmToPixels(cm: number): number {
-  return Math.round(cm * 37.795275591)
+  margin: number // in pixels
+  rowHeight: number // in pixels
+  spacing: number // in pixels
+  customWidth?: number // in pixels
+  customHeight?: number // in pixels
 }
 
 /**
@@ -66,12 +67,12 @@ export function calculatePageLayout(
 
   const { pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight } = options
 
-  // Determine page dimensions
+  // Determine page dimensions in pixels
   let pageDimensions: { width: number; height: number }
   if (pageSize === 'CUSTOM' && customWidth && customHeight) {
     pageDimensions = {
-      width: cmToPixels(customWidth),
-      height: cmToPixels(customHeight),
+      width: customWidth,
+      height: customHeight,
     }
   } else if (pageSize !== 'CUSTOM') {
     pageDimensions = PAGE_SIZES[pageSize][orientation]
