@@ -59,6 +59,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
   const [rowHeight, setRowHeight] = useState(900) // in pixels
   const [spacing, setSpacing] = useState(20) // in pixels
+  const [filterVideos, setFilterVideos] = useState(true) // exclude videos from layout
 
   // Page settings
   const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('CUSTOM')
@@ -89,9 +90,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     }
   }
 
+  // Filter assets based on user preferences
+  const filteredAssets = useMemo(() => {
+    if (!filterVideos) return assets
+    return assets.filter((asset) => asset.type === 'IMAGE')
+  }, [assets, filterVideos])
+
   // Calculate unified page layout - single source of truth!
   const pages = useMemo(() => {
-    return calculatePageLayout(assets, {
+    return calculatePageLayout(filteredAssets, {
       pageSize,
       orientation,
       margin,
@@ -101,10 +108,13 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       customHeight,
       combinePages,
     })
-  }, [assets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages])
+  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages])
 
   // Determine pageLayout based on combinePages setting
   const pageLayout = combinePages ? 'singlePage' : 'twoPageLeft'
+
+  // Calculate total logical pages for display purposes
+  const totalLogicalPages = combinePages ? pages.length * 2 : pages.length
 
   if (isLoading) {
     return (
@@ -149,7 +159,9 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
             ← Back to albums
           </button>
           <h2 className="text-2xl font-semibold">{album.albumName}</h2>
-          <p className="text-gray-600 mt-1">{assets.length} photos</p>
+          <p className="text-gray-600 mt-1">
+            {filteredAssets.length} {filteredAssets.length !== assets.length && `of ${assets.length}`} photos
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -290,6 +302,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
               />
               <span className="text-xs text-gray-600">px</span>
             </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="filterVideos"
+                checked={filterVideos}
+                onChange={(e) => setFilterVideos(e.target.checked)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <label htmlFor="filterVideos" className="text-sm text-gray-700">
+                Exclude Videos
+              </label>
+            </div>
           </div>
 
           {/* Generate PDF / Back to Edit button */}
@@ -384,12 +409,29 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
             const displayWidth = toPoints(page.width)
             const displayHeight = toPoints(page.height)
 
+            // Calculate page numbers for display
+            let pageLabel: string
+            if (combinePages) {
+              const leftPageNum = page.pageNumber * 2 - 1
+              const rightPageNum = page.pageNumber * 2
+
+              // Check if this combined page contains two logical pages or just one
+              if (rightPageNum <= totalLogicalPages) {
+                pageLabel = `Page ${leftPageNum}/${rightPageNum} of ${totalLogicalPages}`
+              } else {
+                // Last page with odd number of logical pages
+                pageLabel = `Page ${leftPageNum} of ${totalLogicalPages}`
+              }
+            } else {
+              pageLabel = `Page ${page.pageNumber} of ${totalLogicalPages}`
+            }
+
             return (
               <div key={page.pageNumber} className="relative">
                 {/* Page number */}
                 <div className="text-center mb-2">
                   <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded">
-                    Page {page.pageNumber} of {pages.length}
+                    {pageLabel}
                   </span>
                 </div>
 
@@ -432,7 +474,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         </div>
                       )}
                       {photoBox.asset.exifInfo?.description && (
-                        <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/70 to-transparent text-white text-sm">
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm p-2">
                           {photoBox.asset.exifInfo.description}
                         </div>
                       )}
