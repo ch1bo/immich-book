@@ -55,6 +55,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [assets, setAssets] = useState<AssetResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<'preview' | 'pdf'>('preview')
 
   const [rowHeight, setRowHeight] = useState(900) // in pixels
   const [spacing, setSpacing] = useState(20) // in pixels
@@ -290,12 +291,32 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
               <span className="text-xs text-gray-600">px</span>
             </div>
           </div>
+
+          {/* Generate PDF / Back to Edit button */}
+          <div className="flex justify-end">
+            {mode === 'preview' ? (
+              <button
+                onClick={() => setMode('pdf')}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+              >
+                Generate PDF
+              </button>
+            ) : (
+              <button
+                onClick={() => setMode('preview')}
+                className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium"
+              >
+                ← Back to Edit
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* PDF Preview */}
-      <div className="w-full" style={{ height: 'calc(100vh - 300px)' }}>
-        <PDFViewer width="100%" height="100%" showToolbar={true}>
+      {mode === 'pdf' ? (
+        /* PDF Viewer */
+        <div className="w-full" style={{ height: 'calc(100vh - 300px)' }}>
+          <PDFViewer width="100%" height="100%" showToolbar={true}>
           <Document pageLayout={pageLayout}>
             {pages.map((pageData) => {
               // FIXME: pdfkit (internal of react-pdf) uses 72dpi internally and we downscale everything here;
@@ -355,6 +376,75 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           </Document>
         </PDFViewer>
       </div>
+      ) : (
+        /* Live Preview */
+        <div className="space-y-8 pb-8">
+          {pages.map((page) => {
+            // Scale down to match PDF dimensions (72 DPI from 300 DPI)
+            const displayWidth = toPoints(page.width)
+            const displayHeight = toPoints(page.height)
+
+            return (
+              <div key={page.pageNumber} className="relative">
+                {/* Page number */}
+                <div className="text-center mb-2">
+                  <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded">
+                    Page {page.pageNumber} of {pages.length}
+                  </span>
+                </div>
+
+                {/* Page container */}
+                <div
+                  className="relative bg-white shadow-lg mx-auto"
+                  style={{
+                    width: `${displayWidth}px`,
+                    height: `${displayHeight}px`,
+                  }}
+                >
+                {/* Photos */}
+                {page.photos.map((photoBox) => {
+                  const imageUrl = `${immichConfig.baseUrl}/assets/${photoBox.asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`
+
+                  return (
+                    <div
+                      key={photoBox.asset.id}
+                      className="absolute overflow-hidden"
+                      style={{
+                        left: `${toPoints(photoBox.x)}px`,
+                        top: `${toPoints(photoBox.y)}px`,
+                        width: `${toPoints(photoBox.width)}px`,
+                        height: `${toPoints(photoBox.height)}px`,
+                      }}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={photoBox.asset.originalFileName}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {photoBox.asset.fileCreatedAt && (
+                        <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded backdrop-blur-sm">
+                          {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </div>
+                      )}
+                      {photoBox.asset.exifInfo?.description && (
+                        <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/70 to-transparent text-white text-sm">
+                          {photoBox.asset.exifInfo.description}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
