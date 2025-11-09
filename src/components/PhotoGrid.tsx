@@ -56,15 +56,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [rowHeight, setRowHeight] = useState(758) // in pixels
+  const [rowHeight, setRowHeight] = useState(900) // in pixels
   const [spacing, setSpacing] = useState(20) // in pixels
 
   // Page settings
   const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('CUSTOM')
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
   const [margin, setMargin] = useState(118) // in pixels (10mm at 300 DPI)
-  const [customWidth, setCustomWidth] = useState(2708) // saal digital default
-  const [customHeight, setCustomHeight] = useState(3402) // saal digital default
+  const [customWidth, setCustomWidth] = useState(2515) // saal digital default
+  const [customHeight, setCustomHeight] = useState(3260) // saal digital default
   const [combinePages, setCombinePages] = useState(true) // combine two pages into one PDF page
 
   useEffect(() => {
@@ -76,7 +76,11 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       setIsLoading(true)
       setError(null)
       const albumData = await getAlbumInfo({ id: album.id })
-      setAssets(albumData.assets || [])
+      // Sort assets by creation date ascending
+      const sorted = albumData.assets.sort((a, b) => {
+        return new Date(a.fileCreatedAt).getTime() - new Date(b.fileCreatedAt).getTime()
+      })
+      setAssets(sorted)
     } catch (err) {
       setError((err as Error).message || 'Failed to load album assets')
     } finally {
@@ -99,7 +103,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   }, [assets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages])
 
   // Determine pageLayout based on combinePages setting
-  const pageLayout = combinePages ? 'singlePage' : 'twoPageLeft' 
+  const pageLayout = combinePages ? 'singlePage' : 'twoPageLeft'
 
   if (isLoading) {
     return (
@@ -178,8 +182,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     id="customWidth"
                     value={customWidth}
                     onChange={(e) => setCustomWidth(Number(e.target.value))}
-                    min="100"
-                    max="20000"
+                    min="1000"
+                    max="10000"
                     step="1"
                     className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -194,8 +198,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     id="customHeight"
                     value={customHeight}
                     onChange={(e) => setCustomHeight(Number(e.target.value))}
-                    min="100"
-                    max="20000"
+                    min="1000"
+                    max="10000"
                     step="1"
                     className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
