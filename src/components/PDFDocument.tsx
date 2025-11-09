@@ -2,13 +2,19 @@ import { Document, Page, Image, View, Text, StyleSheet } from '@react-pdf/render
 import type { Page as PageData } from '../utils/pageLayout'
 import type { ImmichConfig } from './ConnectionForm'
 
+// Convert 300 DPI pixels to 72 DPI points for PDF
+// At 300 DPI: 1 inch = 300 pixels
+// At 72 DPI: 1 inch = 72 points
+// Conversion: points = pixels * (72/300)
+const toPoints = (pixels: number) => pixels * (72 / 300)
+
 interface PDFDocumentProps {
   pages: PageData[]
   immichConfig: ImmichConfig
 }
 
 // Create styles for the PDF
-const styles = 
+const styles =
   StyleSheet.create({
     page: {
       backgroundColor: 'white',
@@ -47,13 +53,18 @@ export function PDFDocument({ pages, immichConfig }: PDFDocumentProps) {
   return (
     <Document pageLayout='twoPageLeft'>
       {pages.map((pageData) => {
+        // FIXME: pdfkit (internal of react-pdf) uses 72dpi internally and we downscale everything here;
+        // instead we should produce a high-quality 300 dpi pdf
+
+        // Convert page dimensions from 300 DPI to 72 DPI
+        const pageWidth = toPoints(pageData.width)
+        const pageHeight = toPoints(pageData.height)
         return (
           <Page
             key={pageData.pageNumber}
-            dpi={300}
             size={{
-              width: pageData.width,
-              height: pageData.height,
+              width: pageWidth,
+              height: pageHeight,
             }}
             style={styles.page}
           >
@@ -66,10 +77,10 @@ export function PDFDocument({ pages, immichConfig }: PDFDocumentProps) {
                   style={[
                     styles.photoContainer,
                     {
-                      left: photoBox.x,
-                      top: photoBox.y,
-                      width: photoBox.width,
-                      height: photoBox.height,
+                      left: toPoints(photoBox.x),
+                      top: toPoints(photoBox.y),
+                      width: toPoints(photoBox.width),
+                      height: toPoints(photoBox.height),
                     },
                   ]}
                 >
