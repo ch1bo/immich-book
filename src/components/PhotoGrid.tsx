@@ -60,15 +60,6 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [rowHeight, setRowHeight] = useState(900) // in pixels
   const [spacing, setSpacing] = useState(20) // in pixels
   const [filterVideos, setFilterVideos] = useState(true) // exclude videos from layout
-  const [hoveredRow, setHoveredRow] = useState<{ pageNumber: number; rowIndex: number } | null>(null)
-
-  // Drag state for row height adjustment
-  const [dragState, setDragState] = useState<{
-    pageNumber: number
-    rowIndex: number
-    startY: number
-    originalHeight: number
-  } | null>(null)
 
   // Page settings
   const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('CUSTOM')
@@ -99,56 +90,6 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     }
   }
 
-  // Handle row height drag start
-  const handleRowMouseDown = (pageNumber: number, rowIndex: number, originalHeight: number, event: React.MouseEvent) => {
-    event.preventDefault()
-    setDragState({
-      pageNumber,
-      rowIndex,
-      startY: event.clientY,
-      originalHeight,
-    })
-  }
-
-  // Handle row height drag move
-  useEffect(() => {
-    if (!dragState) return
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const deltaY = event.clientY - dragState.startY
-      // Convert from 72 DPI screen to 300 DPI layout (reverse of toPoints)
-      const deltaPixels = deltaY * (300 / 72)
-      const newHeight = Math.max(100, dragState.originalHeight + deltaPixels)
-
-      // Update the row's customHeight directly in pages state
-      setPages(prevPages => {
-        return prevPages.map(page => {
-          if (page.pageNumber !== dragState.pageNumber) return page
-
-          return {
-            ...page,
-            rows: page.rows.map((row, idx) => {
-              if (idx !== dragState.rowIndex) return row
-              return { ...row, customHeight: newHeight }
-            })
-          }
-        })
-      })
-    }
-
-    const handleMouseUp = () => {
-      setDragState(null)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [dragState])
-
   // Filter assets based on user preferences
   const filteredAssets = useMemo(() => {
     if (!filterVideos) return assets
@@ -156,11 +97,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   }, [assets, filterVideos])
 
   // Calculate unified page layout - single source of truth!
-  const [pages, setPages] = useState<ReturnType<typeof calculatePageLayout>>([])
-
-  // Recalculate layout when parameters change
-  useEffect(() => {
-    const newPages = calculatePageLayout(filteredAssets, {
+  const pages = useMemo(() => {
+    return calculatePageLayout(filteredAssets, {
       pageSize,
       orientation,
       margin,
@@ -170,67 +108,13 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       customHeight,
       combinePages,
     })
-    setPages(newPages)
   }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages])
-
-  // Apply custom row heights to calculate adjusted layout
-  const adjustedPages = useMemo(() => {
-    return pages.map((page) => {
-      let cumulativeYOffset = 0
-      const adjustedRows = page.rows.map((row) => {
-        const effectiveHeight = row.customHeight ?? row.height
-
-        if (row.customHeight) {
-          // Calculate scale factor for this row
-          const scale = row.customHeight / row.height
-          const heightDelta = row.customHeight - row.height
-
-          // Scale photos in this row
-          const adjustedPhotos = row.photos.map((photo) => ({
-            ...photo,
-            y: photo.y + cumulativeYOffset,
-            height: photo.height * scale,
-          }))
-
-          cumulativeYOffset += heightDelta
-
-          return {
-            ...row,
-            y: row.y + cumulativeYOffset - heightDelta, // Adjust row position
-            height: effectiveHeight,
-            photos: adjustedPhotos,
-          }
-        } else {
-          // No custom height, just adjust Y position based on previous changes
-          const adjustedPhotos = row.photos.map((photo) => ({
-            ...photo,
-            y: photo.y + cumulativeYOffset,
-          }))
-
-          return {
-            ...row,
-            y: row.y + cumulativeYOffset,
-            photos: adjustedPhotos,
-          }
-        }
-      })
-
-      // Rebuild the photos array from adjusted rows
-      const adjustedPhotos = adjustedRows.flatMap((row) => row.photos)
-
-      return {
-        ...page,
-        rows: adjustedRows,
-        photos: adjustedPhotos,
-      }
-    })
-  }, [pages])
 
   // Determine pageLayout based on combinePages setting
   const pageLayout = combinePages ? 'singlePage' : 'twoPageLeft'
 
   // Calculate total logical pages for display purposes
-  const totalLogicalPages = combinePages ? adjustedPages.length * 2 : adjustedPages.length
+  const totalLogicalPages = combinePages ? pages.length * 2 : pages.length
 
   if (isLoading) {
     return (
@@ -459,7 +343,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
         <div className="w-full" style={{ height: 'calc(100vh - 300px)' }}>
           <PDFViewer width="100%" height="100%" showToolbar={true}>
           <Document pageLayout={pageLayout}>
-            {adjustedPages.map((pageData) => {
+            {pages.map((pageData) => {
               // FIXME: pdfkit (internal of react-pdf) uses 72dpi internally and we downscale everything here;
               // instead we should produce a high-quality 300 dpi pdf
 
@@ -520,7 +404,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       ) : (
         /* Live Preview */
         <div className="space-y-8 pb-8">
-          {adjustedPages.map((page) => {
+          {pages.map((page) => {
             // Scale down to match PDF dimensions (72 DPI from 300 DPI)
             const displayWidth = toPoints(page.width)
             const displayHeight = toPoints(page.height)
@@ -592,48 +476,6 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                       {photoBox.asset.exifInfo?.description && (
                         <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm p-2">
                           {photoBox.asset.exifInfo.description}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-
-                {/* Row hover overlays */}
-                {page.rows.map((row, rowIndex) => {
-                  const isHovered = hoveredRow?.pageNumber === page.pageNumber && hoveredRow?.rowIndex === rowIndex
-                  const isDragging = dragState?.pageNumber === page.pageNumber && dragState?.rowIndex === rowIndex
-
-                  // Determine which page this row belongs to based on photo X positions
-                  // If combined pages: left page (0 to pageWidth) or right page (pageWidth to 2*pageWidth)
-                  const firstPhotoX = row.photos[0].x
-                  const singlePageWidth = combinePages ? page.width / 2 : page.width
-                  const isRightPage = combinePages && firstPhotoX >= singlePageWidth
-
-                  const rowLeft = isRightPage ? singlePageWidth : 0
-                  const rowWidth = singlePageWidth
-
-                  return (
-                    <div
-                      key={rowIndex}
-                      className="absolute transition-colors"
-                      style={{
-                        left: `${toPoints(rowLeft)}px`,
-                        top: `${toPoints(row.y)}px`,
-                        width: `${toPoints(rowWidth)}px`,
-                        height: `${toPoints(row.height)}px`,
-                        backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.2)' : isHovered ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                        cursor: 'ns-resize',
-                      }}
-                      onMouseEnter={() => setHoveredRow({ pageNumber: page.pageNumber, rowIndex })}
-                      onMouseLeave={() => setHoveredRow(null)}
-                      onMouseDown={(e) => handleRowMouseDown(page.pageNumber, rowIndex, row.height, e)}
-                    >
-                      {(isHovered || isDragging) && (
-                        <div className="absolute right-2 top-2 px-3 py-1 bg-blue-600 text-white text-xs rounded shadow-lg flex items-center gap-2">
-                          <span>Row {rowIndex + 1}</span>
-                          <span className="text-blue-200">|</span>
-                          <span>Height: {Math.round(row.height)}px</span>
-                          {isDragging && <span className="text-yellow-300">●</span>}
                         </div>
                       )}
                     </div>

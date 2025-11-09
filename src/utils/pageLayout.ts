@@ -15,17 +15,9 @@ export interface PhotoBox {
   height: number
 }
 
-export interface Row {
-  y: number // top position of the row
-  height: number // height of the row
-  photos: PhotoBox[] // photos in this row
-  customHeight?: number // optional custom height for manual adjustments
-}
-
 export interface Page {
   pageNumber: number
   photos: PhotoBox[]
-  rows: Row[] // detected rows on this page
   width: number
   height: number
 }
@@ -36,7 +28,6 @@ export interface Page {
 export function mmToPixels(mm: number): number {
   return Math.round(mm * 11.811023622047244)
 }
-
 
 // Page sizes in pixels (at 300 DPI)
 export const PAGE_SIZES: Record<string, Record<string, PageSize>> = {
@@ -119,12 +110,10 @@ export function calculatePageLayout(
   let currentPage: Page = {
     pageNumber: 1,
     photos: [],
-    rows: [],
     width: pageDimensions.width,
     height: pageDimensions.height,
   }
   let currentPageY = 0
-  let currentRow: Row | null = null
 
   for (let i = 0; i < assets.length; i++) {
     const box = justifiedLayout.getPosition(i)
@@ -134,63 +123,28 @@ export function calculatePageLayout(
     const photoBottom = box.top + box.height
 
     if (currentPage.photos.length > 0 && photoBottom - currentPageY > contentHeight) {
-      // Finish current row and add to page
-      if (currentRow) {
-        currentPage.rows.push(currentRow)
-        currentRow = null
-      }
-
       // Start a new page
       pages.push(currentPage)
       currentPage = {
         pageNumber: pages.length + 1,
         photos: [],
-        rows: [],
         width: pageDimensions.width,
         height: pageDimensions.height,
       }
       currentPageY = box.top
     }
 
-    // Create photo box
-    const photoBox: PhotoBox = {
+    // Add photo to current page (adjust Y relative to page)
+    currentPage.photos.push({
       asset,
       x: box.left + margin,
       y: box.top - currentPageY + margin,
       width: box.width,
       height: box.height,
-    }
-
-    // Add photo to current page
-    currentPage.photos.push(photoBox)
-
-    // Build rows as we go
-    if (!currentRow) {
-      // Start new row
-      currentRow = {
-        y: photoBox.y,
-        height: photoBox.height,
-        photos: [photoBox],
-      }
-    } else if (Math.abs(photoBox.y - currentRow.y) < 1) {
-      // Same row - add photo
-      currentRow.photos.push(photoBox)
-      currentRow.height = Math.max(currentRow.height, photoBox.height)
-    } else {
-      // New row - finish previous and start new
-      currentPage.rows.push(currentRow)
-      currentRow = {
-        y: photoBox.y,
-        height: photoBox.height,
-        photos: [photoBox],
-      }
-    }
+    })
   }
 
-  // Add the last row and page
-  if (currentRow) {
-    currentPage.rows.push(currentRow)
-  }
+  // Add the last page
   if (currentPage.photos.length > 0) {
     pages.push(currentPage)
   }
@@ -204,34 +158,17 @@ export function calculatePageLayout(
 
       if (rightPage) {
         // Combine two pages side-by-side
-        const combinedPhotos = [
-          // Left page photos - keep as is
-          ...leftPage.photos,
-          // Right page photos - shift horizontally by page width
-          ...rightPage.photos.map((photo) => ({
-            ...photo,
-            x: photo.x + pageDimensions.width,
-          })),
-        ]
-
-        // Combine rows from both pages - rows stay within their original page boundaries
-        const combinedRows: Row[] = [
-          // Left page rows - keep as is
-          ...leftPage.rows,
-          // Right page rows - shift photos' X positions
-          ...rightPage.rows.map((row) => ({
-            ...row,
-            photos: row.photos.map((photo) => ({
+        const combinedPage: Page = {
+          pageNumber: Math.floor(i / 2) + 1,
+          photos: [
+            // Left page photos - keep as is
+            ...leftPage.photos,
+            // Right page photos - shift horizontally by page width
+            ...rightPage.photos.map((photo) => ({
               ...photo,
               x: photo.x + pageDimensions.width,
             })),
-          })),
-        ]
-
-        const combinedPage: Page = {
-          pageNumber: Math.floor(i / 2) + 1,
-          photos: combinedPhotos,
-          rows: combinedRows,
+          ],
           width: pageDimensions.width * 2,
           height: pageDimensions.height,
         }
@@ -242,7 +179,6 @@ export function calculatePageLayout(
           ...leftPage,
           pageNumber: Math.floor(i / 2) + 1,
           width: pageDimensions.width * 2, // Keep same width for consistency
-          rows: leftPage.rows, // Keep existing rows
         })
       }
     }
