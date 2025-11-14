@@ -57,7 +57,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<'preview' | 'pdf'>('preview')
 
-  const [rowHeight, setRowHeight] = useState(900) // in pixels
+  const [rowHeight, setRowHeight] = useState(994) // in pixels
   const [spacing, setSpacing] = useState(20) // in pixels
   const [filterVideos, setFilterVideos] = useState(true) // exclude videos from layout
 
@@ -547,8 +547,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 id="rowHeight"
                 value={rowHeight}
                 onChange={(e) => setRowHeight(Number(e.target.value))}
-                min="118"
-                max="1181"
+                min="100"
+                max={customHeight}
                 step="10"
                 className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

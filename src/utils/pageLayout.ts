@@ -110,7 +110,7 @@ export function calculatePageLayout(
     rowHeight,
     rowWidth: contentWidth,
     spacing,
-    heightTolerance: 0.1,
+    heightTolerance: 0
   })
 
   // Convert justified layout positions to page-based layout
