@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getAlbumInfo, type AlbumResponseDto, type AssetResponseDto } from '@immich/sdk'
 import { PDFViewer, Document, Page, Image, View, Text, StyleSheet } from '@react-pdf/renderer'
-import { calculatePageLayout } from '../utils/pageLayout'
+import { calculatePageLayout, PAGE_SIZES } from '../utils/pageLayout'
 import type { ImmichConfig } from './ConnectionForm'
 
 interface PhotoGridProps {
@@ -82,6 +82,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     edge: 'left' | 'right'
     startX: number
     originalAspectRatio: number
+    originalX: number
     originalWidth: number
   } | null>(null)
 
@@ -129,6 +130,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     assetId: string,
     edge: 'left' | 'right',
     aspectRatio: number,
+    x: number,
     width: number,
     event: React.MouseEvent
   ) => {
@@ -139,6 +141,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       edge,
       startX: event.clientX,
       originalAspectRatio: aspectRatio,
+      originalX: x,
       originalWidth: width,
     })
   }
@@ -159,6 +162,40 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     setCustomAspectRatios(new Map())
   }
 
+  // Filter assets based on user preferences
+  const filteredAssets = useMemo(() => {
+    if (!filterVideos) return assets
+    return assets.filter((asset) => asset.type === 'IMAGE')
+  }, [assets, filterVideos])
+
+  // Calculate content width for snapping
+  const contentWidth = useMemo(() => {
+    let pageDimensions: { width: number; height: number }
+    if (pageSize === 'CUSTOM' && customWidth && customHeight) {
+      pageDimensions = { width: customWidth, height: customHeight }
+    } else if (pageSize !== 'CUSTOM') {
+      pageDimensions = PAGE_SIZES[pageSize][orientation]
+    } else {
+      pageDimensions = PAGE_SIZES.A4.portrait
+    }
+    return pageDimensions.width - margin * 2
+  }, [pageSize, orientation, margin, customWidth, customHeight])
+
+  // Calculate unified page layout - single source of truth!
+  const pages = useMemo(() => {
+    return calculatePageLayout(filteredAssets, {
+      pageSize,
+      orientation,
+      margin,
+      rowHeight,
+      spacing,
+      customWidth,
+      customHeight,
+      combinePages,
+      customAspectRatios,
+    })
+  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages, customAspectRatios])
+
   // Handle aspect ratio drag
   useEffect(() => {
     if (!aspectDragState) return
@@ -170,7 +207,24 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
       // Calculate new width based on edge being dragged
       const widthDelta = aspectDragState.edge === 'right' ? deltaPixels : -deltaPixels
-      const newWidth = Math.max(50, aspectDragState.originalWidth + widthDelta)
+      let newWidth = Math.max(50, aspectDragState.originalWidth + widthDelta)
+
+      // Snap to full width when within threshold
+      const snapThreshold = 50
+
+      if (aspectDragState.originalX < contentWidth) {
+        const rightEdge = aspectDragState.originalX - margin + newWidth
+        console.log("snap left page?", rightEdge, contentWidth)
+        if (Math.abs(rightEdge - contentWidth) <= snapThreshold) {
+            newWidth = margin + contentWidth - aspectDragState.originalX
+        }
+      } else {
+        const rightEdge = aspectDragState.originalX - contentWidth - 3 * margin + newWidth
+        console.log("snap right page?", rightEdge, contentWidth)
+        if (Math.abs(rightEdge - contentWidth) <= snapThreshold) {
+            newWidth = margin + contentWidth + 2 * margin + contentWidth - aspectDragState.originalX
+        }
+      }
 
       // Calculate new aspect ratio (width stays same height, so aspect ratio changes)
       const heightFromOriginal = aspectDragState.originalWidth / aspectDragState.originalAspectRatio
@@ -194,28 +248,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [aspectDragState])
-
-  // Filter assets based on user preferences
-  const filteredAssets = useMemo(() => {
-    if (!filterVideos) return assets
-    return assets.filter((asset) => asset.type === 'IMAGE')
-  }, [assets, filterVideos])
-
-  // Calculate unified page layout - single source of truth!
-  const pages = useMemo(() => {
-    return calculatePageLayout(filteredAssets, {
-      pageSize,
-      orientation,
-      margin,
-      rowHeight,
-      spacing,
-      customWidth,
-      customHeight,
-      combinePages,
-      customAspectRatios,
-    })
-  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages, customAspectRatios])
+  }, [aspectDragState, contentWidth, margin])
 
   // Determine pageLayout based on combinePages setting
   const pageLayout = combinePages ? 'singlePage' : 'twoPageLeft'
@@ -635,7 +668,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             ? 'bg-blue-500'
                             : 'bg-transparent group-hover:bg-blue-400/50'
                         }`}
-                        onMouseDown={(e) => handleAspectDragStart(photoBox.asset.id, 'left', aspectRatio, photoBox.width, e)}
+                        onMouseDown={(e) => handleAspectDragStart(photoBox.asset.id, 'left', aspectRatio, photoBox.x, photoBox.width, e)}
                       />
 
                       {/* Right drag handle */}
@@ -645,7 +678,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             ? 'bg-blue-500'
                             : 'bg-transparent group-hover:bg-blue-400/50'
                         }`}
-                        onMouseDown={(e) => handleAspectDragStart(photoBox.asset.id, 'right', aspectRatio, photoBox.width, e)}
+                        onMouseDown={(e) => handleAspectDragStart(photoBox.asset.id, 'right', aspectRatio, photoBox.x, photoBox.width, e)}
                       />
                     </div>
                   )
