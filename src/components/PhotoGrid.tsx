@@ -210,20 +210,21 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       let newWidth = Math.max(50, aspectDragState.originalWidth + widthDelta)
 
       // Snap to full width when within threshold
+      // Determine which page the image is on and snap to that page's right edge
       const snapThreshold = 50
+      const singlePageWidth = contentWidth + margin
 
-      if (aspectDragState.originalX < contentWidth) {
-        const rightEdge = aspectDragState.originalX - margin + newWidth
-        console.log("snap left page?", rightEdge, contentWidth)
-        if (Math.abs(rightEdge - contentWidth) <= snapThreshold) {
-            newWidth = margin + contentWidth - aspectDragState.originalX
-        }
-      } else {
-        const rightEdge = aspectDragState.originalX - contentWidth - 3 * margin + newWidth
-        console.log("snap right page?", rightEdge, contentWidth)
-        if (Math.abs(rightEdge - contentWidth) <= snapThreshold) {
-            newWidth = margin + contentWidth + 2 * margin + contentWidth - aspectDragState.originalX
-        }
+      // Calculate which page we're on (0-indexed)
+      const pageIndex = Math.floor(aspectDragState.originalX / (singlePageWidth + margin))
+
+      // Calculate this page's start X position
+      const pageStartX = pageIndex * (singlePageWidth + margin) + margin
+
+      // Calculate right edge relative to this page's start
+      const rightEdge = aspectDragState.originalX - pageStartX + newWidth
+
+      if (Math.abs(rightEdge - contentWidth) <= snapThreshold) {
+        newWidth = pageStartX + contentWidth - aspectDragState.originalX
       }
 
       // Calculate new aspect ratio (width stays same height, so aspect ratio changes)
