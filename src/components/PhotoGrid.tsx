@@ -76,6 +76,27 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     return new Map()
   })
 
+  // Custom ordering of assets (null = use default order)
+  const [customOrdering, setCustomOrdering] = useState<string[] | null>(() => {
+    // Load from localStorage on mount
+    const stored = localStorage.getItem(`immich-book-ordering-${album.id}`)
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch (e) {
+        console.error('Failed to parse stored ordering:', e)
+      }
+    }
+    return null
+  })
+
+  // Drag state for reordering
+  const [reorderDragState, setReorderDragState] = useState<{
+    draggedAssetId: string
+    draggedIndex: number
+  } | null>(null)
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null)
+
   // Drag state for aspect ratio adjustment
   const [aspectDragState, setAspectDragState] = useState<{
     assetId: string
@@ -107,6 +128,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       localStorage.removeItem(`immich-book-aspect-ratios-${album.id}`)
     }
   }, [customAspectRatios, album.id])
+
+  // Save custom ordering to localStorage whenever it changes
+  useEffect(() => {
+    if (customOrdering) {
+      localStorage.setItem(`immich-book-ordering-${album.id}`, JSON.stringify(customOrdering))
+    } else {
+      localStorage.removeItem(`immich-book-ordering-${album.id}`)
+    }
+  }, [customOrdering, album.id])
 
   const loadAlbumAssets = async () => {
     try {
@@ -162,11 +192,75 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     setCustomAspectRatios(new Map())
   }
 
-  // Filter assets based on user preferences
-  const filteredAssets = useMemo(() => {
-    if (!filterVideos) return assets
-    return assets.filter((asset) => asset.type === 'IMAGE')
+  // Drag & drop handlers for reordering
+  const handleReorderDragStart = (assetId: string, index: number, event: React.DragEvent) => {
+    event.dataTransfer.effectAllowed = 'move'
+    setReorderDragState({ draggedAssetId: assetId, draggedIndex: index })
+  }
+
+  const handleReorderDragOver = (index: number, event: React.DragEvent) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDropTargetIndex(index)
+  }
+
+  const handleReorderDragEnd = () => {
+    setReorderDragState(null)
+    setDropTargetIndex(null)
+  }
+
+  const handleReorderDrop = (targetIndex: number, event: React.DragEvent) => {
+    event.preventDefault()
+
+    if (!reorderDragState) return
+
+    const { draggedIndex } = reorderDragState
+
+    if (draggedIndex === targetIndex) {
+      handleReorderDragEnd()
+      return
+    }
+
+    // Create new ordering based on current filtered assets
+    const currentOrder = filteredAssets.map(asset => asset.id)
+    const newOrder = [...currentOrder]
+
+    // Remove from old position
+    const [removed] = newOrder.splice(draggedIndex, 1)
+    // Insert at new position
+    newOrder.splice(targetIndex, 0, removed)
+
+    setCustomOrdering(newOrder)
+    handleReorderDragEnd()
+  }
+
+  // Reset ordering to default
+  const handleResetOrdering = () => {
+    setCustomOrdering(null)
+  }
+
+  // Filter assets based on user preferences (default order)
+  const defaultFilteredAssets = useMemo(() => {
+    return filterVideos ? assets.filter((asset) => asset.type === 'IMAGE') : assets
   }, [assets, filterVideos])
+
+  // Apply custom ordering to filtered assets
+  const filteredAssets = useMemo(() => {
+    if (!customOrdering) return defaultFilteredAssets
+
+    // Create a map for quick lookup
+    const assetMap = new Map(defaultFilteredAssets.map(asset => [asset.id, asset]))
+    // Reorder based on customOrdering, filtering out any IDs that don't exist
+    const reordered = customOrdering
+      .map(id => assetMap.get(id))
+      .filter((asset): asset is AssetResponseDto => asset !== undefined)
+
+    // Add any assets that aren't in customOrdering at the end
+    const orderedIds = new Set(customOrdering)
+    const remaining = defaultFilteredAssets.filter(asset => !orderedIds.has(asset.id))
+
+    return [...reordered, ...remaining]
+  }, [defaultFilteredAssets, customOrdering])
 
   // Calculate content width for snapping
   const contentWidth = useMemo(() => {
@@ -303,18 +397,38 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           <p className="text-gray-600 mt-1">
             {filteredAssets.length} {filteredAssets.length !== assets.length && `of ${assets.length}`} photos
           </p>
-          {customAspectRatios.size > 0 && (
-            <div className="flex items-center gap-3 mt-2">
-              <p className="text-sm text-gray-600">
-                {customAspectRatios.size} customization{customAspectRatios.size !== 1 ? 's' : ''}
-              </p>
-              <button
-                onClick={handleResetAllCustomizations}
-                className="text-sm px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow-md transition-colors"
-                title={`Reset ${customAspectRatios.size} customization${customAspectRatios.size !== 1 ? 's' : ''}`}
-              >
-                Reset All
-              </button>
+          {(customAspectRatios.size > 0 || customOrdering !== null) && (
+            <div className="mt-2 space-y-2">
+              {customAspectRatios.size > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1 text-sm text-gray-600">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                    {customAspectRatios.size} aspect ratio change{customAspectRatios.size !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={handleResetAllCustomizations}
+                    className="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-md transition-colors"
+                    title="Reset aspect ratio customizations"
+                  >
+                    Reset Aspect Ratios
+                  </button>
+                </div>
+              )}
+              {customOrdering !== null && (
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1 text-sm text-gray-600">
+                    <span className="w-2 h-2 bg-green-500 rounded-full" />
+                    Custom ordering
+                  </span>
+                  <button
+                    onClick={handleResetOrdering}
+                    className="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-md transition-colors"
+                    title="Reset to default ordering"
+                  >
+                    Reset Ordering
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -614,17 +728,35 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   const aspectRatio = customAspectRatios.get(photoBox.asset.id) || currentAspectRatio
                   const isCustomized = customAspectRatios.has(photoBox.asset.id)
 
+                  // Find global index in filtered assets for drag & drop
+                  const globalIndex = filteredAssets.findIndex(a => a.id === photoBox.asset.id)
+                  const isBeingDragged = reorderDragState?.draggedAssetId === photoBox.asset.id
+                  const isDropTarget = dropTargetIndex === globalIndex
+
+                  // Check if this asset has been reordered (compare to default filtered order)
+                  const defaultIndex = defaultFilteredAssets.findIndex(a => a.id === photoBox.asset.id)
+                  const isReordered = customOrdering !== null && globalIndex !== defaultIndex
+
                   return (
                     <div
                       key={photoBox.asset.id}
-                      className="absolute overflow-hidden group"
+                      className={`absolute overflow-hidden group cursor-move ${isBeingDragged ? 'opacity-50' : ''}`}
                       style={{
                         left: `${toPoints(photoBox.x)}px`,
                         top: `${toPoints(photoBox.y)}px`,
                         width: `${toPoints(photoBox.width)}px`,
                         height: `${toPoints(photoBox.height)}px`,
                       }}
+                      draggable
+                      onDragStart={(e) => handleReorderDragStart(photoBox.asset.id, globalIndex, e)}
+                      onDragOver={(e) => handleReorderDragOver(globalIndex, e)}
+                      onDragEnd={handleReorderDragEnd}
+                      onDrop={(e) => handleReorderDrop(globalIndex, e)}
                     >
+                      {/* Drop indicator - shown on left edge when hovering during drag */}
+                      {isDropTarget && reorderDragState && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 shadow-lg z-10" />
+                      )}
                       <img
                         src={imageUrl}
                         alt={photoBox.asset.originalFileName}
@@ -646,9 +778,12 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         </div>
                       )}
 
-                      {/* Customization indicator */}
+                      {/* Customization indicators */}
                       {isCustomized && (
                         <div className="absolute top-2 left-2 w-2 h-2 bg-blue-500 rounded-full shadow-lg" title="Aspect ratio customized" />
+                      )}
+                      {isReordered && (
+                        <div className="absolute top-2 left-5 w-2 h-2 bg-green-500 rounded-full shadow-lg" title="Image reordered" />
                       )}
 
                       {/* Reset button - shown on hover for customized images */}
