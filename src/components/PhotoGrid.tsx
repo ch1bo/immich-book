@@ -29,17 +29,41 @@ const styles = StyleSheet.create({
     height: '100%',
     objectFit: 'cover',
   },
-  dateOverlay: {
+  dateOverlayTopRight: {
     position: 'absolute',
     top: 8,
     right: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     color: 'white',
     fontSize: 10,
-    padding: 4,
+    padding: 8,
     borderRadius: 2,
   },
-  descriptionOverlay: {
+  dateOverlayBottomRight: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    color: 'white',
+    fontSize: 10,
+    padding: 8,
+    borderRadius: 2,
+  },
+  dateOverlayTopLeft: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    color: 'white',
+    fontSize: 10,
+  },
+  dateOverlayTopRightNoFill: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    color: 'white',
+    fontSize: 10,
+  },
+  descriptionBottom: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -48,6 +72,39 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 11,
     padding: 8,
+  },
+  descriptionTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    color: 'white',
+    fontSize: 11,
+    padding: 8,
+  },
+  descriptionLeft: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    color: 'white',
+    fontSize: 11,
+    padding: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  descriptionRight: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    color: 'white',
+    fontSize: 11,
+    padding: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoContainerFlex: {
+    position: 'absolute',
+    flexDirection: 'row',
+    display: 'flex',
   },
 })
 
@@ -88,6 +145,23 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       }
     }
     return null
+  })
+
+  // Description positions per asset
+  // 'bottom' | 'top' | 'left' | 'right'
+  type DescriptionPosition = 'bottom' | 'top' | 'left' | 'right'
+  const [descriptionPositions, setDescriptionPositions] = useState<Map<string, DescriptionPosition>>(() => {
+    // Load from localStorage on mount
+    const stored = localStorage.getItem(`immich-book-description-positions-${album.id}`)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        return new Map(Object.entries(parsed))
+      } catch (e) {
+        console.error('Failed to parse stored description positions:', e)
+      }
+    }
+    return new Map()
   })
 
   // Drag state for reordering
@@ -137,6 +211,16 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       localStorage.removeItem(`immich-book-ordering-${album.id}`)
     }
   }, [customOrdering, album.id])
+
+  // Save description positions to localStorage whenever they change
+  useEffect(() => {
+    if (descriptionPositions.size > 0) {
+      const obj = Object.fromEntries(descriptionPositions)
+      localStorage.setItem(`immich-book-description-positions-${album.id}`, JSON.stringify(obj))
+    } else {
+      localStorage.removeItem(`immich-book-description-positions-${album.id}`)
+    }
+  }, [descriptionPositions, album.id])
 
   const loadAlbumAssets = async () => {
     try {
@@ -239,6 +323,28 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     setCustomOrdering(null)
   }
 
+  // Cycle description position
+  const handleDescriptionClick = (assetId: string, event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const positions: DescriptionPosition[] = ['bottom', 'top', 'left', 'right']
+    const currentPosition = descriptionPositions.get(assetId) || 'bottom'
+    const currentIndex = positions.indexOf(currentPosition)
+    const nextPosition = positions[(currentIndex + 1) % positions.length]
+
+    setDescriptionPositions(prev => {
+      const next = new Map(prev)
+      if (nextPosition === 'bottom') {
+        // Reset to default
+        next.delete(assetId)
+      } else {
+        next.set(assetId, nextPosition)
+      }
+      return next
+    })
+  }
+
   // Filter assets based on user preferences (default order)
   const defaultFilteredAssets = useMemo(() => {
     return filterVideos ? assets.filter((asset) => asset.type === 'IMAGE') : assets
@@ -277,6 +383,32 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
   // Calculate unified page layout - single source of truth!
   const pages = useMemo(() => {
+    // Adjust aspect ratios for assets with left/right description positions
+    const adjustedAspectRatios = new Map(customAspectRatios)
+
+    filteredAssets.forEach(asset => {
+      const descPosition = descriptionPositions.get(asset.id)
+      const hasDescription = !!asset.exifInfo?.description
+
+      if (hasDescription && (descPosition === 'left' || descPosition === 'right')) {
+        // Double the aspect ratio (make it wider) to account for description space
+        const currentRatio = customAspectRatios.get(asset.id)
+
+        if (currentRatio) {
+          adjustedAspectRatios.set(asset.id, currentRatio * 2)
+        } else {
+          // Calculate natural aspect ratio and double it
+          const width = asset.exifInfo?.exifImageWidth || 1
+          const height = asset.exifInfo?.exifImageHeight || 1
+          let naturalRatio = width / height
+          if (asset.exifInfo?.orientation === "6") {
+            naturalRatio = height / width
+          }
+          adjustedAspectRatios.set(asset.id, naturalRatio * 2)
+        }
+      }
+    })
+
     return calculatePageLayout(filteredAssets, {
       pageSize,
       orientation,
@@ -286,9 +418,9 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       customWidth,
       customHeight,
       combinePages,
-      customAspectRatios,
+      customAspectRatios: adjustedAspectRatios,
     })
-  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages, customAspectRatios])
+  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages, customAspectRatios, descriptionPositions])
 
   // Handle aspect ratio drag
   useEffect(() => {
@@ -630,36 +762,86 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 >
                   {pageData.photos.map((photoBox) => {
                     const imageUrl = `${immichConfig.baseUrl}/assets/${photoBox.asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`
+                    const descPosition = descriptionPositions.get(photoBox.asset.id) || 'bottom'
+                    const hasDescription = !!photoBox.asset.exifInfo?.description
+                    const isLeftRight = hasDescription && (descPosition === 'left' || descPosition === 'right')
+
+                    // When description is on left/right, photoBox.width is already doubled by the layout algorithm
+                    // So we use it as-is and split it between image and description
+                    const containerWidth = toPoints(photoBox.width)
+                    const imageWidth = isLeftRight ? toPoints(photoBox.width) / 2 : toPoints(photoBox.width)
+
+                    const containerStyle = isLeftRight ? [
+                      styles.photoContainerFlex,
+                      {
+                        left: toPoints(photoBox.x),
+                        top: toPoints(photoBox.y),
+                        width: containerWidth,
+                        height: toPoints(photoBox.height),
+                        flexDirection: 'row',
+                      }
+                    ] : [
+                      styles.photoContainer,
+                      {
+                        left: toPoints(photoBox.x),
+                        top: toPoints(photoBox.y),
+                        width: containerWidth,
+                        height: toPoints(photoBox.height),
+                      },
+                    ]
 
                     return (
-                      <View
-                        key={photoBox.asset.id}
-                        style={[
-                          styles.photoContainer,
-                          {
-                            left: toPoints(photoBox.x),
-                            top: toPoints(photoBox.y),
-                            width: toPoints(photoBox.width),
-                            height: toPoints(photoBox.height),
-                          },
-                        ]}
-                      >
-                        <Image src={imageUrl} style={styles.photo} />
+                      <View key={photoBox.asset.id} style={containerStyle}>
+                        {/* Description on left (when position is 'left') */}
+                        {hasDescription && descPosition === 'left' && (
+                          <View style={[styles.descriptionLeft, { width: imageWidth, flexShrink: 0 }]}>
+                            <Text>{photoBox.asset.exifInfo.description}</Text>
+                          </View>
+                        )}
 
-                        {photoBox.asset.fileCreatedAt && (
-                          <Text style={styles.dateOverlay}>
-                            {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                        <Image
+                          src={imageUrl}
+                          style={isLeftRight ? { objectFit: 'cover', width: imageWidth, height: toPoints(photoBox.height), flexShrink: 0 } : styles.photo}
+                        />
+
+                        {photoBox.asset.fileCreatedAt && (() => {
+                          const getDateStyle = () => {
+                            switch (descPosition) {
+                              case 'bottom':
+                                return styles.dateOverlayTopRight
+                              case 'top':
+                                return styles.dateOverlayBottomRight
+                              case 'left':
+                                return styles.dateOverlayTopLeft
+                              case 'right':
+                                return styles.dateOverlayTopRightNoFill
+                              default:
+                                return styles.dateOverlayTopRight
+                            }
+                          }
+                          return (
+                            <Text style={getDateStyle()}>
+                              {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </Text>
+                          )
+                        })()}
+
+                        {/* Description for top/bottom positions */}
+                        {hasDescription && (descPosition === 'top' || descPosition === 'bottom') && (
+                          <Text style={descPosition === 'top' ? styles.descriptionTop : styles.descriptionBottom}>
+                            {photoBox.asset.exifInfo.description}
                           </Text>
                         )}
 
-                        {photoBox.asset.exifInfo?.description && (
-                          <Text style={styles.descriptionOverlay}>
-                            {photoBox.asset.exifInfo.description}
-                          </Text>
+                        {/* Description on right (when position is 'right') */}
+                        {hasDescription && descPosition === 'right' && (
+                          <View style={[styles.descriptionRight, { width: imageWidth, flexShrink: 0 }]}>
+                            <Text>{photoBox.asset.exifInfo.description}</Text>
+                          </View>
                         )}
                       </View>
                     )
@@ -737,15 +919,25 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   const defaultIndex = defaultFilteredAssets.findIndex(a => a.id === photoBox.asset.id)
                   const isReordered = customOrdering !== null && globalIndex !== defaultIndex
 
+                  const descPosition = descriptionPositions.get(photoBox.asset.id) || 'bottom'
+                  const hasDescription = !!photoBox.asset.exifInfo?.description
+                  const isLeftRight = hasDescription && (descPosition === 'left' || descPosition === 'right')
+
+                  // When description is on left/right, photoBox.width is already doubled by the layout algorithm
+                  // So we use it as-is and split it between image and description
+                  const containerWidth = toPoints(photoBox.width)
+                  const imageWidth = isLeftRight ? toPoints(photoBox.width) / 2 : toPoints(photoBox.width)
+
                   return (
                     <div
                       key={photoBox.asset.id}
-                      className={`absolute overflow-hidden group cursor-move ${isBeingDragged ? 'opacity-50' : ''}`}
+                      className={`absolute overflow-hidden group cursor-move ${isBeingDragged ? 'opacity-50' : ''} ${isLeftRight ? 'flex' : ''}`}
                       style={{
                         left: `${toPoints(photoBox.x)}px`,
                         top: `${toPoints(photoBox.y)}px`,
-                        width: `${toPoints(photoBox.width)}px`,
+                        width: `${containerWidth}px`,
                         height: `${toPoints(photoBox.height)}px`,
+                        flexDirection: 'row',
                       }}
                       draggable
                       onDragStart={(e) => handleReorderDragStart(photoBox.asset.id, globalIndex, e)}
@@ -757,23 +949,98 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                       {isDropTarget && reorderDragState && (
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 shadow-lg z-10" />
                       )}
+
+                      {/* Description on left (when position is 'left') */}
+                      {hasDescription && descPosition === 'left' && (
+                        <div
+                          className="bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors flex items-center justify-center"
+                          style={{ width: `${imageWidth}px`, flexShrink: 0 }}
+                          onClick={(e) => handleDescriptionClick(photoBox.asset.id, e)}
+                          title="Click to change position"
+                        >
+                          {photoBox.asset.exifInfo.description}
+                        </div>
+                      )}
+
                       <img
                         src={imageUrl}
                         alt={photoBox.asset.originalFileName}
-                        className="w-full h-full object-cover"
+                        className="object-cover w-full h-full"
+                        style={isLeftRight ? { width: `${imageWidth}px`, flexShrink: 0 } : undefined}
                         loading="lazy"
                       />
-                      {photoBox.asset.fileCreatedAt && (
-                        <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded backdrop-blur-sm">
-                          {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </div>
-                      )}
-                      {photoBox.asset.exifInfo?.description && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm p-2">
+                      {photoBox.asset.fileCreatedAt && (() => {
+                        const getDateClassName = () => {
+                          switch (descPosition) {
+                            case 'bottom':
+                              return 'absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm'
+                            case 'top':
+                              return 'absolute bottom-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm'
+                            case 'left':
+                              return 'absolute top-2 left-2 text-white text-xs'
+                            case 'right':
+                              return 'absolute top-2 right-2 text-white text-xs'
+                            default:
+                              return 'absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm'
+                          }
+                        }
+                        return (
+                          <div className={getDateClassName()}>
+                            {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </div>
+                        )
+                      })()}
+                      {photoBox.asset.exifInfo?.description && (() => {
+                        const descPosition = descriptionPositions.get(photoBox.asset.id) || 'bottom'
+                        const description = photoBox.asset.exifInfo.description
+
+                        if (descPosition === 'left' || descPosition === 'right') {
+                          // For left/right: description is next to image, not overlaid
+                          return null
+                        }
+
+                        const getDescriptionConfig = () => {
+                          switch (descPosition) {
+                            case 'top':
+                              return {
+                                className: 'absolute top-0 left-0 right-0 bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors z-10',
+                                style: {}
+                              }
+                            case 'bottom':
+                            default:
+                              return {
+                                className: 'absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors z-10',
+                                style: {}
+                              }
+                          }
+                        }
+
+                        const config = getDescriptionConfig()
+
+                        return (
+                          <div
+                            className={config.className}
+                            style={config.style}
+                            onClick={(e) => handleDescriptionClick(photoBox.asset.id, e)}
+                            title="Click to change position"
+                          >
+                            {description}
+                          </div>
+                        )
+                      })()}
+
+                      {/* Description on right (when position is 'right') */}
+                      {hasDescription && descPosition === 'right' && (
+                        <div
+                          className="bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors flex items-center justify-center"
+                          style={{ width: `${imageWidth}px`, flexShrink: 0 }}
+                          onClick={(e) => handleDescriptionClick(photoBox.asset.id, e)}
+                          title="Click to change position"
+                        >
                           {photoBox.asset.exifInfo.description}
                         </div>
                       )}
