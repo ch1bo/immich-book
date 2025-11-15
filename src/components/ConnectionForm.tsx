@@ -43,6 +43,11 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
         }
     }
 
+    const handleUseDemoServer = () => {
+        setServerUrl('https://demo.immich.app')
+        setApiKey(import.meta.env.VITE_DEMO_API_KEY || '')
+    }
+
     return (
         <div className="max-w-md mx-auto">
             <div className="bg-white shadow-md rounded-lg p-6">
@@ -66,6 +71,22 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
                             Only proceed if you trust this hosting provider! Anyone who controls the hosting can potentially access all your photos through your API key.
                             For maximum security, consider self-hosting on the same domain as your Immich server.
                         </p>
+                    </div>
+                )}
+
+                {import.meta.env.VITE_DEMO_API_KEY && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-xs text-blue-900 font-semibold mb-2">💡 Try the Demo</p>
+                        <p className="text-xs text-blue-800 mb-3">
+                            Want to explore Immich Book without setting up your own server? Use the public <strong>demo.immich.app</strong> instance to try out all features with sample photos.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleUseDemoServer}
+                            className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                        >
+                            Use Demo Server
+                        </button>
                     </div>
                 )}
 
