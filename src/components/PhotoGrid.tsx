@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 2,
   },
-  dateOverlayTopLeft: {
+  dateOverlayTopLeftNoFill: {
     position: 'absolute',
     top: 8,
     left: 8,
@@ -89,7 +89,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     padding: 8,
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'center',
   },
   descriptionRight: {
@@ -98,7 +97,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     padding: 8,
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'center',
   },
   photoContainerFlex: {
@@ -771,16 +769,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     const containerWidth = toPoints(photoBox.width)
                     const imageWidth = isLeftRight ? toPoints(photoBox.width) / 2 : toPoints(photoBox.width)
 
-                    const containerStyle = isLeftRight ? [
-                      styles.photoContainerFlex,
-                      {
-                        left: toPoints(photoBox.x),
-                        top: toPoints(photoBox.y),
-                        width: containerWidth,
-                        height: toPoints(photoBox.height),
-                        flexDirection: 'row',
-                      }
-                    ] : [
+                    // Use absolute positioning for everything (no flex for left/right)
+                    const containerStyle = [
                       styles.photoContainer,
                       {
                         left: toPoints(photoBox.x),
@@ -792,56 +782,76 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
                     return (
                       <View key={photoBox.asset.id} style={containerStyle}>
-                        {/* Description on left (when position is 'left') */}
+                        {/* Description on left - absolutely positioned */}
                         {hasDescription && descPosition === 'left' && (
-                          <View style={[styles.descriptionLeft, { width: imageWidth, flexShrink: 0 }]}>
-                            <Text>{photoBox.asset.exifInfo.description}</Text>
+                          <View style={[styles.descriptionLeft, {
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            width: imageWidth,
+                            height: toPoints(photoBox.height),
+                          }]}>
+                            <Text style={{ color: 'white', fontSize: 11 }}>{photoBox.asset.exifInfo.description}</Text>
                           </View>
                         )}
 
+                        {/* Image - absolutely positioned */}
                         <Image
                           src={imageUrl}
-                          style={isLeftRight ? { objectFit: 'cover', width: imageWidth, height: toPoints(photoBox.height), flexShrink: 0 } : styles.photo}
+                          style={isLeftRight ? {
+                            position: 'absolute',
+                            left: descPosition === 'left' ? imageWidth : 0,
+                            top: 0,
+                            width: imageWidth,
+                            height: toPoints(photoBox.height),
+                            objectFit: 'cover',
+                          } : styles.photo}
                         />
 
-                        {photoBox.asset.fileCreatedAt && (() => {
-                          const getDateStyle = () => {
+                        {/* Description on right - absolutely positioned */}
+                        {hasDescription && descPosition === 'right' && (
+                          <View style={[styles.descriptionRight, {
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            width: imageWidth,
+                            height: toPoints(photoBox.height),
+                          }]}>
+                            <Text style={{ color: 'white', fontSize: 11 }}>{photoBox.asset.exifInfo.description}</Text>
+                          </View>
+                        )}
+
+                        {/* Date - absolutely positioned */}
+                        {photoBox.asset.fileCreatedAt && (
+                          <View style={(() => {
                             switch (descPosition) {
                               case 'bottom':
                                 return styles.dateOverlayTopRight
                               case 'top':
                                 return styles.dateOverlayBottomRight
                               case 'left':
-                                return styles.dateOverlayTopLeft
+                                return styles.dateOverlayTopLeftNoFill
                               case 'right':
                                 return styles.dateOverlayTopRightNoFill
                               default:
                                 return styles.dateOverlayTopRight
                             }
-                          }
-                          return (
-                            <Text style={getDateStyle()}>
+                          })()}>
+                            <Text style={{ color: 'white', fontSize: 10 }}>
                               {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric',
                               })}
                             </Text>
-                          )
-                        })()}
+                          </View>
+                        )}
 
                         {/* Description for top/bottom positions */}
                         {hasDescription && (descPosition === 'top' || descPosition === 'bottom') && (
                           <Text style={descPosition === 'top' ? styles.descriptionTop : styles.descriptionBottom}>
                             {photoBox.asset.exifInfo.description}
                           </Text>
-                        )}
-
-                        {/* Description on right (when position is 'right') */}
-                        {hasDescription && descPosition === 'right' && (
-                          <View style={[styles.descriptionRight, { width: imageWidth, flexShrink: 0 }]}>
-                            <Text>{photoBox.asset.exifInfo.description}</Text>
-                          </View>
                         )}
                       </View>
                     )
