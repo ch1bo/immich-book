@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+  schedule:
+    - cron: '0 */4 * * *'  # Every 4 hours
   workflow_dispatch:
 
 permissions:
@@ -31,10 +33,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Get demo API key
+        id: demo-key
+        run: |
+          DEMO_API_KEY=$(node .github/workflows/get-demo-api-key.mjs)
+          echo "::add-mask::$DEMO_API_KEY"
+          echo "key=$DEMO_API_KEY" >> $GITHUB_OUTPUT
+
       - name: Build
         run: npm run build
         env:
           VITE_BASE_PATH: /immich-book/
+          VITE_DEMO_API_KEY: ${{ steps.demo-key.outputs.key }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
