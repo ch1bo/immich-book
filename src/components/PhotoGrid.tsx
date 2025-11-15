@@ -23,6 +23,10 @@ interface GlobalConfig {
   rowHeight: number
   spacing: number
   filterVideos: boolean
+
+  // Display settings
+  showDates: boolean
+  showDescriptions: boolean
 }
 
 interface AlbumConfig extends GlobalConfig {
@@ -42,6 +46,8 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   rowHeight: 994,
   spacing: 20,
   filterVideos: true,
+  showDates: true,
+  showDescriptions: true,
 }
 
 const DEFAULT_ALBUM_CONFIG: AlbumConfig = {
@@ -109,6 +115,8 @@ function saveAlbumConfig(albumId: string, config: AlbumConfig) {
       rowHeight: config.rowHeight,
       spacing: config.spacing,
       filterVideos: config.filterVideos,
+      showDates: config.showDates,
+      showDescriptions: config.showDescriptions,
     }
     saveGlobalConfig(globalConfig)
   } catch (e) {
@@ -221,6 +229,10 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [spacing, setSpacing] = useState(initialConfig.spacing)
   const [filterVideos, setFilterVideos] = useState(initialConfig.filterVideos)
 
+  // Display settings
+  const [showDates, setShowDates] = useState(initialConfig.showDates)
+  const [showDescriptions, setShowDescriptions] = useState(initialConfig.showDescriptions)
+
   // Customizations
   const [customAspectRatios, setCustomAspectRatios] = useState<Map<string, number>>(
     () => new Map(Object.entries(initialConfig.customAspectRatios))
@@ -277,6 +289,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       rowHeight,
       spacing,
       filterVideos,
+      showDates,
+      showDescriptions,
       customAspectRatios: Object.fromEntries(customAspectRatios),
       customOrdering,
       descriptionPositions: Object.fromEntries(descriptionPositions),
@@ -293,6 +307,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     rowHeight,
     spacing,
     filterVideos,
+    showDates,
+    showDescriptions,
     customAspectRatios,
     customOrdering,
     descriptionPositions,
@@ -461,7 +477,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
     filteredAssets.forEach(asset => {
       const descPosition = descriptionPositions.get(asset.id)
-      const hasDescription = !!asset.exifInfo?.description
+      const hasDescription = showDescriptions && !!asset.exifInfo?.description
 
       if (hasDescription && (descPosition === 'left' || descPosition === 'right')) {
         // Double the aspect ratio (make it wider) to account for description space
@@ -493,7 +509,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       combinePages,
       customAspectRatios: adjustedAspectRatios,
     })
-  }, [filteredAssets, margin, rowHeight, spacing, pageWidth, pageHeight, combinePages, customAspectRatios, descriptionPositions])
+  }, [filteredAssets, margin, rowHeight, spacing, pageWidth, pageHeight, combinePages, customAspectRatios, descriptionPositions, showDescriptions])
 
   // Handle aspect ratio drag
   useEffect(() => {
@@ -589,8 +605,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
   return (
     <div>
-      {/* Controls - Hidden when printing */}
-      <div className="no-print mb-6 flex items-center justify-between">
+      {/* Controls */}
+      <div className="mb-6 flex flex-1 items-start justify-between gap-8">
         <div>
           <button
             onClick={onBack}
@@ -602,220 +618,9 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           <p className="text-gray-600 mt-1">
             {filteredAssets.length} {filteredAssets.length !== assets.length && `of ${assets.length}`} photos
           </p>
-          {(customAspectRatios.size > 0 || customOrdering !== null || descriptionPositions.size > 0) && (
-            <div className="mt-2 space-y-2">
-              {customAspectRatios.size > 0 && (
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-sm text-gray-600">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                    {customAspectRatios.size} aspect ratio change{customAspectRatios.size !== 1 ? 's' : ''}
-                  </span>
-                  <button
-                    onClick={handleResetAllCustomizations}
-                    className="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-md transition-colors"
-                    title="Reset aspect ratio customizations"
-                  >
-                    Reset Aspect Ratios
-                  </button>
-                </div>
-              )}
-              {customOrdering !== null && (
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-sm text-gray-600">
-                    <span className="w-2 h-2 bg-green-500 rounded-full" />
-                    Custom ordering
-                  </span>
-                  <button
-                    onClick={handleResetOrdering}
-                    className="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-md transition-colors"
-                    title="Reset to default ordering"
-                  >
-                    Reset Ordering
-                  </button>
-                </div>
-              )}
-              {descriptionPositions.size > 0 && (
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-sm text-gray-600">
-                    <span className="w-2 h-2 bg-purple-500 rounded-full" />
-                    {descriptionPositions.size} label position change{descriptionPositions.size !== 1 ? 's' : ''}
-                  </span>
-                  <button
-                    onClick={handleResetDescriptionPositions}
-                    className="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-md transition-colors"
-                    title="Reset label positions"
-                  >
-                    Reset Label Positions
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          {/* Page and Layout Settings Group */}
-          <div className="p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
-            {/* Header */}
-            <div className="mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">Page & Layout Settings</h3>
-            </div>
-
-          {/* Page settings row */}
-          <div className="flex items-center gap-4 p-3 bg-white rounded border border-gray-200">
-            <div className="flex items-center gap-2">
-              <label htmlFor="pageSize" className="text-sm text-gray-700">
-                Size:
-              </label>
-              <select
-                id="pageSize"
-                value={pageSize}
-                onChange={(e) => setPageSize(e.target.value as 'A4' | 'LETTER' | 'A3' | 'CUSTOM')}
-                className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="A4">A4</option>
-                <option value="LETTER">Letter</option>
-                <option value="A3">A3</option>
-                <option value="CUSTOM">Custom</option>
-              </select>
-            </div>
-
-            {pageSize === 'CUSTOM' ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <label htmlFor="pageWidth" className="text-sm text-gray-700">
-                    Width:
-                  </label>
-                  <input
-                    type="number"
-                    id="pageWidth"
-                    value={pageWidth}
-                    onChange={(e) => setPageWidth(Number(e.target.value))}
-                    min="1000"
-                    max="10000"
-                    step="1"
-                    className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-xs text-gray-600">px</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label htmlFor="pageHeight" className="text-sm text-gray-700">
-                    Height:
-                  </label>
-                  <input
-                    type="number"
-                    id="pageHeight"
-                    value={pageHeight}
-                    onChange={(e) => setPageHeight(Number(e.target.value))}
-                    min="1000"
-                    max="10000"
-                    step="1"
-                    className="px-2 py-1 w-20 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-xs text-gray-600">px</span>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <label htmlFor="orientation" className="text-sm text-gray-700">
-                  Orientation:
-                </label>
-                <select
-                  id="orientation"
-                  value={orientation}
-                  onChange={(e) => setOrientation(e.target.value as 'portrait' | 'landscape')}
-                  className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="portrait">Portrait</option>
-                  <option value="landscape">Landscape</option>
-                </select>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="combinePages"
-                checked={combinePages}
-                onChange={(e) => setCombinePages(e.target.checked)}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <label htmlFor="combinePages" className="text-sm text-gray-700">
-                Combine Pages
-              </label>
-            </div>
-          </div>
-
-          {/* Layout settings row */}
-          <div className="flex items-center gap-4 p-3 bg-white rounded border border-gray-200 mt-2">
-            <div className="flex items-center gap-2">
-              <label htmlFor="margin" className="text-sm text-gray-700">
-                Margin:
-              </label>
-              <input
-                type="number"
-                id="margin"
-                value={margin}
-                onChange={(e) => setMargin(Number(e.target.value))}
-                min="0"
-                max="590"
-                step="10"
-                className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-xs text-gray-600">px</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label htmlFor="rowHeight" className="text-sm text-gray-700">
-                Row Height:
-              </label>
-              <input
-                type="number"
-                id="rowHeight"
-                value={rowHeight}
-                onChange={(e) => setRowHeight(Number(e.target.value))}
-                min="100"
-                max={pageHeight}
-                step="10"
-                className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-xs text-gray-600">px</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label htmlFor="spacing" className="text-sm text-gray-700">
-                Spacing:
-              </label>
-              <input
-                type="number"
-                id="spacing"
-                value={spacing}
-                onChange={(e) => setSpacing(Number(e.target.value))}
-                min="0"
-                max="100"
-                step="1"
-                className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-xs text-gray-600">px</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="filterVideos"
-                checked={filterVideos}
-                onChange={(e) => setFilterVideos(e.target.checked)}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <label htmlFor="filterVideos" className="text-sm text-gray-700">
-                Exclude Videos
-              </label>
-            </div>
-          </div>
-          </div>
 
           {/* Generate PDF / Back to Edit button */}
-          <div className="flex justify-end">
+          <div className="mt-4">
             {mode === 'preview' ? (
               <button
                 onClick={() => setMode('pdf')}
@@ -828,10 +633,162 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 onClick={() => setMode('preview')}
                 className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium"
               >
-                ← Back to Edit
+                Back to Edit
               </button>
             )}
           </div>
+        </div>
+
+        <div className="space-y-2">
+          {/* 1. Page Setup */}
+          <div className="p-2 bg-gray-50 rounded border border-gray-300">
+            <div className="flex items-center gap-4">
+              <h3 className="text-xs font-semibold text-gray-700 w-28">Page</h3>
+              <div className="flex items-center gap-1">
+                <label htmlFor="pageWidth" className="text-gray-600 text-xs">Width:</label>
+                <input
+                  type="number"
+                  id="pageWidth"
+                  value={pageWidth}
+                  onChange={(e) => setPageWidth(Number(e.target.value))}
+                  min="1000"
+                  max="10000"
+                  className="px-1 py-0.5 w-16 text-xs border border-gray-300 rounded"
+                />
+                <span className="text-xs text-gray-500">px</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <label htmlFor="pageHeight" className="text-gray-600 text-xs">Height:</label>
+                <input
+                  type="number"
+                  id="pageHeight"
+                  value={pageHeight}
+                  onChange={(e) => setPageHeight(Number(e.target.value))}
+                  min="1000"
+                  max="10000"
+                  className="px-1 py-0.5 w-16 text-xs border border-gray-300 rounded"
+                />
+                <span className="text-xs text-gray-500">px</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  id="combinePages"
+                  checked={combinePages}
+                  onChange={(e) => setCombinePages(e.target.checked)}
+                  className="h-3 w-3"
+                />
+                <label htmlFor="combinePages" className="text-xs text-gray-700">Combine Pages</label>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Layout */}
+          <div className="p-2 bg-gray-50 rounded border border-gray-300">
+            <div className="flex items-center gap-4">
+              <h3 className="text-xs font-semibold text-gray-700 w-28">Layout</h3>
+              <div className="flex items-center gap-1">
+                <label htmlFor="margin" className="text-gray-600 text-xs">Margin:</label>
+                <input
+                  type="number"
+                  id="margin"
+                  value={margin}
+                  onChange={(e) => setMargin(Number(e.target.value))}
+                  min="0"
+                  max="590"
+                  step="10"
+                  className="px-1 py-0.5 w-14 text-xs border border-gray-300 rounded"
+                />
+                <span className="text-xs text-gray-500">px</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <label htmlFor="rowHeight" className="text-gray-600 text-xs">Row Height:</label>
+                <input
+                  type="number"
+                  id="rowHeight"
+                  value={rowHeight}
+                  onChange={(e) => setRowHeight(Number(e.target.value))}
+                  min="100"
+                  max={pageHeight}
+                  step="10"
+                  className="px-1 py-0.5 w-14 text-xs border border-gray-300 rounded"
+                />
+                <span className="text-xs text-gray-500">px</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <label htmlFor="spacing" className="text-gray-600 text-xs">Spacing:</label>
+                <input
+                  type="number"
+                  id="spacing"
+                  value={spacing}
+                  onChange={(e) => setSpacing(Number(e.target.value))}
+                  min="0"
+                  max="100"
+                  className="px-1 py-0.5 w-12 text-xs border border-gray-300 rounded"
+                />
+                <span className="text-xs text-gray-500">px</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Presentation */}
+          <div className="p-2 bg-gray-50 rounded border border-gray-300">
+            <div className="flex items-center gap-4">
+              <h3 className="text-xs font-semibold text-gray-700 w-28">Presentation</h3>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <input type="checkbox" id="filterVideos" checked={filterVideos} onChange={(e) => setFilterVideos(e.target.checked)} className="h-3 w-3" />
+                  <label htmlFor="filterVideos" className="text-xs text-gray-700">Exclude Videos</label>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input type="checkbox" id="showDates" checked={showDates} onChange={(e) => setShowDates(e.target.checked)} className="h-3 w-3" />
+                  <label htmlFor="showDates" className="text-xs text-gray-700">Show Dates</label>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input type="checkbox" id="showDescriptions" checked={showDescriptions} onChange={(e) => setShowDescriptions(e.target.checked)} className="h-3 w-3" />
+                  <label htmlFor="showDescriptions" className="text-xs text-gray-700">Show Descriptions</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Customizations (only shown when there are any) */}
+          {(customAspectRatios.size > 0 || customOrdering !== null || descriptionPositions.size > 0) && (
+            <div className="p-2 bg-gray-50 rounded border border-gray-300">
+              <div className="flex items-center gap-4">
+                <h3 className="text-xs font-semibold text-gray-700 w-28">Customizations</h3>
+                <div className="flex items-center gap-3">
+                  {customOrdering !== null && (
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-xs text-gray-600">
+                        <span className="w-2 h-2 bg-green-500 rounded-full" />
+                        Custom order
+                      </span>
+                      <button onClick={handleResetOrdering} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded">Reset</button>
+                    </div>
+                  )}
+                  {customAspectRatios.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-xs text-gray-600">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                        {customAspectRatios.size} aspect ratio
+                      </span>
+                      <button onClick={handleResetAllCustomizations} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded">Reset</button>
+                    </div>
+                  )}
+                  {descriptionPositions.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-xs text-gray-600">
+                        <span className="w-2 h-2 bg-purple-500 rounded-full" />
+                        {descriptionPositions.size} label position
+                      </span>
+                      <button onClick={handleResetDescriptionPositions} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded">Reset</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -859,7 +816,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   {pageData.photos.map((photoBox) => {
                     const imageUrl = `${immichConfig.baseUrl}/assets/${photoBox.asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`
                     const descPosition = descriptionPositions.get(photoBox.asset.id) || 'bottom'
-                    const hasDescription = !!photoBox.asset.exifInfo?.description
+                    const hasDescription = showDescriptions && !!photoBox.asset.exifInfo?.description
                     const isLeftRight = hasDescription && (descPosition === 'left' || descPosition === 'right')
 
                     // When description is on left/right, photoBox.width is already doubled by the layout algorithm
@@ -920,7 +877,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         )}
 
                         {/* Date - absolutely positioned */}
-                        {photoBox.asset.fileCreatedAt && (
+                        {showDates && photoBox.asset.fileCreatedAt && (
                           <View style={(() => {
                             switch (descPosition) {
                               case 'bottom':
@@ -1028,7 +985,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   const isReordered = customOrdering !== null && globalIndex !== defaultIndex
 
                   const descPosition = descriptionPositions.get(photoBox.asset.id) || 'bottom'
-                  const hasDescription = !!photoBox.asset.exifInfo?.description
+                  const hasDescription = showDescriptions && !!photoBox.asset.exifInfo?.description
                   const isLeftRight = hasDescription && (descPosition === 'left' || descPosition === 'right')
 
                   // When description is on left/right, photoBox.width is already doubled by the layout algorithm
@@ -1077,7 +1034,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         style={isLeftRight ? { width: `${imageWidth}px`, flexShrink: 0 } : undefined}
                         loading="lazy"
                       />
-                      {photoBox.asset.fileCreatedAt && (() => {
+                      {showDates && photoBox.asset.fileCreatedAt && (() => {
                         const getDateConfig = () => {
                           switch (descPosition) {
                             case 'bottom':
@@ -1103,7 +1060,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                           </div>
                         )
                       })()}
-                      {photoBox.asset.exifInfo?.description && (() => {
+                      {showDescriptions && photoBox.asset.exifInfo?.description && (() => {
                         const descPosition = descriptionPositions.get(photoBox.asset.id) || 'bottom'
                         const description = photoBox.asset.exifInfo.description
 
