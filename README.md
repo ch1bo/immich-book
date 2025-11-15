@@ -17,6 +17,11 @@ Your photos are already organized in Immich albums. Immich Book turns those cura
 
 <!-- TODO: Add screenshots/video demo here -->
 
+Try it with demo assets on the hosted setup: [ch1bo.github.io/immich-book](https://ch1bo.github.io/immich-book)
+
+> [!TIP]
+> The demo server access needs to be renewed every couple of hours. Should you get encouner errors, try reloading the page.
+
 ## Features
 
 ### Connection & Browsing
@@ -78,7 +83,7 @@ You will need:
 > [!WARNING]
 > **Security Notice:** When using the hosted instance, your API key may be captured by whoever controls that domain. Only proceed if you trust the hosting provider! Anyone who controls the hosting can potentially access all your photos through your API key. For maximum security, consider self-hosting.
 
-**Official hosted instance:** https://ch1bo.github.io/immich-book
+You may use the deployment built from this repository and published to Github Pages: [ch1bo.github.io/immich-book](https://ch1bo.github.io/immich-book)
 
 #### Enable CORS on Your Immich Server
 
