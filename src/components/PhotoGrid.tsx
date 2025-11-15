@@ -1,8 +1,19 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getAlbumInfo, type AlbumResponseDto, type AssetResponseDto } from '@immich/sdk'
-import { PDFViewer, Document, Page, Image, View, Text, StyleSheet } from '@react-pdf/renderer'
+import { PDFViewer, Document, Page, Image, View, Text, StyleSheet, Font } from '@react-pdf/renderer'
 import { calculatePageLayout, PAGE_SIZES } from '../utils/pageLayout'
 import type { ImmichConfig } from './ConnectionForm'
+import roboto400 from '@fontsource/roboto/files/roboto-latin-400-normal.woff?url'
+import roboto500 from '@fontsource/roboto/files/roboto-latin-500-normal.woff?url'
+
+// Register Roboto font for PDF using local bundled files
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    { src: roboto400, fontWeight: 400 },
+    { src: roboto500, fontWeight: 500 },
+  ]
+})
 
 interface PhotoGridProps {
   immichConfig: ImmichConfig
@@ -152,6 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     padding: 8,
     borderRadius: 2,
+    fontFamily: 'Roboto',
   },
   dateOverlayBottomRight: {
     position: 'absolute',
@@ -162,6 +174,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     padding: 8,
     borderRadius: 2,
+    fontFamily: 'Roboto',
   },
   descriptionBottom: {
     position: 'absolute',
@@ -172,6 +185,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     padding: 8,
+    fontFamily: 'Roboto',
   },
   descriptionTop: {
     position: 'absolute',
@@ -182,6 +196,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     padding: 8,
+    fontFamily: 'Roboto',
   },
   descriptionLeft: {
     fontSize: 14,
@@ -189,6 +204,7 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'center',
     backgroundColor: '#F3F4F6',
+    fontFamily: 'Roboto',
   },
   descriptionRight: {
     fontSize: 14,
@@ -196,6 +212,7 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'center',
     backgroundColor: '#F3F4F6',
+    fontFamily: 'Roboto',
   },
   photoContainerFlex: {
     position: 'absolute',
@@ -591,7 +608,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           <p className="text-sm text-red-800">{error}</p>
           <button
             onClick={loadAlbumAssets}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors shadow-sm font-medium"
           >
             Retry
           </button>
@@ -621,14 +638,14 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
             {mode === 'preview' ? (
               <button
                 onClick={() => setMode('pdf')}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors shadow-sm"
               >
                 Generate PDF
               </button>
             ) : (
               <button
                 onClick={() => setMode('preview')}
-                className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium"
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors shadow-sm"
               >
                 Back to Edit
               </button>
@@ -761,7 +778,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         <span className="w-2 h-2 bg-green-500 rounded-full" />
                         Custom order
                       </span>
-                      <button onClick={handleResetOrdering} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded">Reset</button>
+                      <button onClick={handleResetOrdering} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-medium">Reset</button>
                     </div>
                   )}
                   {customAspectRatios.size > 0 && (
@@ -770,7 +787,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         <span className="w-2 h-2 bg-blue-500 rounded-full" />
                         {customAspectRatios.size} aspect ratio
                       </span>
-                      <button onClick={handleResetAllCustomizations} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded">Reset</button>
+                      <button onClick={handleResetAllCustomizations} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-medium">Reset</button>
                     </div>
                   )}
                   {descriptionPositions.size > 0 && (
@@ -779,7 +796,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         <span className="w-2 h-2 bg-purple-500 rounded-full" />
                         {descriptionPositions.size} label position
                       </span>
-                      <button onClick={handleResetDescriptionPositions} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded">Reset</button>
+                      <button onClick={handleResetDescriptionPositions} className="text-xs px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-medium">Reset</button>
                     </div>
                   )}
                 </div>
@@ -857,7 +874,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             width: imageWidth,
                             height: toPoints(photoBox.height),
                           }]}>
-                            <Text style={{ color: 'black', fontSize: 14 }}>{photoBox.asset.exifInfo.description}</Text>
+                            <Text style={{ color: 'black', fontSize: 14, fontFamily: 'Roboto' }}>{photoBox.asset.exifInfo.description}</Text>
                           </View>
                         )}
 
@@ -883,7 +900,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             width: imageWidth,
                             height: toPoints(photoBox.height),
                           }]}>
-                            <Text style={{ color: 'black', fontSize: 14 }}>{photoBox.asset.exifInfo.description}</Text>
+                            <Text style={{ color: 'black', fontSize: 14, fontFamily: 'Roboto' }}>{photoBox.asset.exifInfo.description}</Text>
                           </View>
                         )}
 
@@ -903,7 +920,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                 return styles.dateOverlayTopRight
                             }
                           })()}>
-                            <Text style={{ color: descPosition === 'left' || descPosition === 'right' ? 'black' : 'white', fontSize: 12 }}>
+                            <Text style={{ color: descPosition === 'left' || descPosition === 'right' ? 'black' : 'white', fontSize: 12, fontFamily: 'Roboto' }}>
                               {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
                                 year: 'numeric',
                                 month: 'short',

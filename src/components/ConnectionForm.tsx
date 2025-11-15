@@ -112,7 +112,7 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
                     <button
                         type="submit"
                         disabled={isConnecting}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-sm font-medium"
                     >
                         {isConnecting ? 'Connecting...' : 'Connect'}
                     </button>

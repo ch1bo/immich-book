@@ -21,6 +21,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/roboto": "^5.2.8",
     "@immich/justified-layout-wasm": "^0.4.3",
     "@immich/sdk": "^2.2.3",
     "@react-pdf/renderer": "^4.3.1",
