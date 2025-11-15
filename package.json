@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "license": "AGPL-3.0",
-  "author": "Sebastian Nagel <immich-book@ncoding.at>",
+  "author": "Sebastian Nagel <sebastian.nagel@ncoding.at>",
   "description": "Create beautiful photo books from your Immich albums",
   "repository": {
     "type": "git",

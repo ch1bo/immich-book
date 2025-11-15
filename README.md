@@ -102,34 +102,6 @@ add_header 'Access-Control-Allow-Headers' 'x-api-key, Content-Type, Accept' alwa
 - Only add CORS headers for domains you trust
 - Reload nginx after changes: `sudo nginx -s reload`
 
-### Using Immich Book
-
-1. **Connect to Immich**
-   - Visit https://ch1bo.github.io/immich-book
-   - Enter your Immich server URL (e.g., `https://immich.example.com`)
-   - Enter your API key
-   - Click "Connect"
-
-2. **Select an Album**
-   - Browse your albums
-   - Click on an album to open it
-
-3. **Configure Page Layout**
-   - **Page Setup**: Adjust width, height, and combine pages option
-   - **Layout**: Configure margin, row height, and spacing
-   - **Presentation**: Toggle exclude videos, show dates, and show descriptions
-
-4. **Customize Individual Photos**
-   - **Drag borders** (left/right edges) to adjust aspect ratio
-   - **Drag & drop** photos to reorder them
-   - **Click descriptions** to cycle position (bottom → top → left → right)
-   - View customization indicators (blue = aspect ratio, green = reordered, purple = label position)
-
-5. **Generate PDF**
-   - Click "Generate PDF" to preview
-   - Use the PDF viewer toolbar to download
-   - Click "Back to Edit" to make changes
-
 ### Self-Hosting (Recommended)
 
 Self-hosting on the same domain as your Immich server is the most secure option and doesn't require CORS configuration.
@@ -177,6 +149,34 @@ Reload nginx, for example using `sudo nginx -s reload`
 
 Docker support is planned for easier deployment.
 
+### Using Immich Book
+
+1. **Connect to Immich**
+   - Visit [hosted](#using-the-hosted-version) or your own [self-hosted](#self-hosting-recommended) (recommended) instance of `immich-book`
+   - Enter your Immich server URL (e.g., `https://immich.example.com`)
+   - Enter your API key
+   - Click "Connect"
+
+2. **Select an Album**
+   - Browse your albums
+   - Click on an album to open it
+
+3. **Configure Page Layout**
+   - **Page Setup**: Adjust width, height, and combine pages option
+   - **Layout**: Configure margin, row height, and spacing
+   - **Presentation**: Toggle exclude videos, show dates, and show descriptions
+
+4. **Customize Individual Photos**
+   - **Drag borders** (left/right edges) to adjust aspect ratio
+   - **Drag & drop** photos to reorder them
+   - **Click descriptions** to cycle position (bottom → top → left → right)
+   - View customization indicators (blue = aspect ratio, green = reordered, purple = label position)
+
+5. **Generate PDF**
+   - Click "Generate PDF" to preview
+   - Use the PDF viewer toolbar to download
+   - Click "Back to Edit" to make changes
+
 ## Development
 
 Clone and install:
@@ -210,7 +210,7 @@ npm run type-check  # Run TypeScript type checking
 Contributions are welcome! Please feel free to submit issues and pull requests.
 
 > [!NOTE]
-> This is currently a "vibe coded" proof of concept. Code quality improvements are welcome!
+> This is still a proof of concept with plenty of AI generated code and no tests.
 
 ## Acknowledgments
 
@@ -229,7 +229,7 @@ This means you are free to use, modify, and distribute this software, provided t
 
 See the [LICENSE](LICENSE) file for the full terms.
 
-Commercial licensing is available if you wish to use this software in a commercial product or service without the open source requirements of AGPL-3.0, contact us immich-book@ncoding.at
+Commercial licensing is available if you wish to use this software in a commercial product or service without the open source requirements of AGPL-3.0, contact us immich-book@ncoding.li
 
 ---
 
