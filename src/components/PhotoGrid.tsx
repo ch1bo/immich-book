@@ -616,7 +616,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           </button>
           <h2 className="text-2xl font-semibold">{album.albumName}</h2>
           <p className="text-gray-600 mt-1">
-            {filteredAssets.length} {filteredAssets.length !== assets.length && `of ${assets.length}`} photos
+            {filteredAssets.length} {filteredAssets.length !== assets.length && `of ${assets.length}`} assets
           </p>
 
           {/* Generate PDF / Back to Edit button */}
@@ -813,6 +813,20 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   }}
                   style={styles.page}
                 >
+                  {/* Page break indicator for combined pages */}
+                  {combinePages && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: pageWidth / 2,
+                        top: 0,
+                        bottom: 0,
+                        width: 1,
+                        borderLeft: '1 dashed #D1D5DB',
+                      }}
+                    />
+                  )}
+
                   {pageData.photos.map((photoBox) => {
                     const imageUrl = `${immichConfig.baseUrl}/assets/${photoBox.asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`
                     const descPosition = descriptionPositions.get(photoBox.asset.id) || 'bottom'
@@ -953,12 +967,20 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
                 {/* Page container */}
                 <div
-                  className="relative bg-white shadow-lg mx-auto"
+                  className="relative bg-white shadow-lg mx-auto border border-gray-200"
                   style={{
                     width: `${displayWidth}px`,
                     height: `${displayHeight}px`,
                   }}
                 >
+                {/* Page break indicator for combined pages */}
+                {combinePages && (
+                  <div
+                    className="absolute top-0 bottom-0 border-l border-dashed border-gray-300 z-10 pointer-events-none"
+                    style={{ left: `${displayWidth / 2}px` }}
+                  />
+                )}
+
                 {/* Photos */}
                 {page.photos.map((photoBox) => {
                   const imageUrl = `${immichConfig.baseUrl}/assets/${photoBox.asset.id}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`
