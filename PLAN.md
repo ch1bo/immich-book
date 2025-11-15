@@ -67,10 +67,16 @@ A web application that generates print-ready photo books from Immich albums, lev
 - Live preview with PDFViewer component
 - Built-in download via toolbar
 
-**Current Limitations:**
+**Current State:**
+- Layout calculated at 300 DPI for accuracy, converted to 72 DPI points for PDF output
+- Live preview with PDFViewer component shows exact output
+- Consistent rendering between web preview and PDF (matching fonts, sizes, colors)
+- Support for custom page dimensions and combined page mode
+
+**Remaining Limitations:**
 - pdfkit (internal to react-pdf) produces 72 DPI output regardless of settings
-- Solution: Calculate layout at 300 DPI, convert to 72 DPI points for PDF output
-- Phase 2: Fix pdfkit to support high-quality PDF/X output at 300 DPI
+- Phase 3: Fix pdfkit to support high-quality PDF/X output at 300 DPI
+- Phase 3: Add proper print bleeds and color profiles
 
 **Previous Approach:**
 - Browser Print API + Print CSS - worked but lacked custom page size support
@@ -115,12 +121,25 @@ GET /api/assets/{assetId}/original
 - [x] Adjustable layout parameters (margin, row height, spacing)
 - [x] Combine pages feature (dual-page layout for print shops)
 
-### Phase 2: Advanced selection
-- [ ] Improved preview
-- [ ] Change general sorting
-- [ ] Filter assets
-- [ ] Customize row heights
-- [ ] Re-arrange assets
+### Phase 2: Advanced Selection & Customization ✅ COMPLETED
+- [x] Improved preview with actual page layout and dimensions
+- [x] Filter assets (exclude videos toggle)
+- [x] Customize row heights (adjustable parameter)
+- [x] Re-arrange assets (drag & drop reordering with visual indicators)
+- [x] Custom aspect ratios per photo (drag borders to adjust)
+- [x] Description position cycling (bottom/top/left/right per photo)
+- [x] Toggle dates and descriptions globally
+- [x] Per-album configuration with global fallback
+- [x] Customization indicators (color-coded dots: blue=aspect, green=order, purple=label)
+- [x] Reset customizations (individual and bulk reset buttons)
+- [x] Page break indicator for combined mode (subtle dashed line)
+- [x] Edit button linking to Immich asset pages
+- [x] Compact settings UI with organized sections (Page/Layout/Presentation)
+- [x] Consistent fonts between preview and PDF (Helvetica)
+- [x] Light gray background for left/right description boxes
+- [x] Proper contrast with gray-200 background
+
+**Note:** General sorting (date, name, etc.) was not implemented, but manual drag & drop reordering provides more powerful control.
 
 ### Phase 3: Print Quality
 - [ ] Fix pdfkit to support high-quality PDF/X output at 300 DPI
@@ -378,16 +397,24 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 
 ## Next Steps
 
-1. Set up development environment
-2. Create basic React app with Immich API connection
-3. Implement album browsing and asset loading
-4. Build simple grid layout with captions
-5. Add basic PDF export functionality
-6. Iterate on layout and customization options
-7. Launch alpha version in Immich community
-8. Gather feedback and iterate
-9. Create landing page and documentation
-10. Pursue partnerships with print services
+**Phase 1 & 2 Completed:**
+1. ✅ Set up development environment
+2. ✅ Create basic React app with Immich API connection
+3. ✅ Implement album browsing and asset loading
+4. ✅ Build justified layout with captions
+5. ✅ Add PDF export functionality with live preview
+6. ✅ Add extensive layout and customization options
+7. ✅ Implement per-photo customizations (aspect ratio, reordering, label positions)
+
+**Phase 3 & Beyond:**
+1. Improve PDF quality (300 DPI output, proper bleeds, color profiles)
+2. Add general sorting options (by date, name, etc.)
+3. Add more filter options (date range, favorites, etc.)
+4. Consider template system for common layouts
+5. Launch beta version in Immich community
+6. Gather feedback and iterate
+7. Create landing page and documentation
+8. Explore partnerships with print services
 
 ## Notes
 
