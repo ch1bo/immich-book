@@ -20,11 +20,13 @@ Your photos are already organized in Immich albums. Immich Book turns those cura
 ## Features
 
 ### Connection & Browsing
+
 - Connect to your Immich server with API key authentication
 - Browse and select from all your albums
 - Automatic reconnection to last used album
 
 ### Layout & Customization
+
 - Justified layout using @immich/justified-layout-wasm
 - Custom page sizes (A4, Letter, A3) and custom dimensions
 - Adjustable layout parameters (margin, row height, spacing)
@@ -32,6 +34,7 @@ Your photos are already organized in Immich albums. Immich Book turns those cura
 - Per-album configuration with global fallback
 
 ### Photo Customization
+
 - Drag borders to customize aspect ratios per photo
 - Drag & drop to reorder photos
 - Cycle description positions (bottom, top, left, right)
@@ -40,6 +43,7 @@ Your photos are already organized in Immich albums. Immich Book turns those cura
 - Color-coded indicators for customized photos
 
 ### Preview & Export
+
 - Live preview with actual page layout and dimensions
 - Page break indicator in combined mode
 - High-quality PDF export using @react-pdf/renderer
@@ -98,6 +102,7 @@ add_header 'Access-Control-Allow-Headers' 'x-api-key, Content-Type, Accept' alwa
 ```
 
 **Important:**
+
 - Never use `Access-Control-Allow-Origin: *` (wildcard) - it's a security risk
 - Only add CORS headers for domains you trust
 - Reload nginx after changes: `sudo nginx -s reload`
@@ -107,6 +112,7 @@ add_header 'Access-Control-Allow-Headers' 'x-api-key, Content-Type, Accept' alwa
 Self-hosting on the same domain as your Immich server is the most secure option and doesn't require CORS configuration.
 
 First, build the application:
+
 ```bash
 git clone https://github.com/ch1bo/immich-book.git
 cd immich-book
@@ -119,6 +125,7 @@ npm run build
 Deploy to a subdirectory of your Immich domain (e.g., `https://photos.example.com/book/`).
 
 Configure nginx (or your reverse proxy):
+
 ```nginx
 location /book/ {
     alias /path/to/immich-book/dist/;
@@ -133,6 +140,7 @@ Reload nginx, for example using `sudo nginx -s reload`
 Deploy to a subdomain (e.g., `https://book.photos.example.com/`).
 
 Configure nginx (or your reverse proxy):
+
 ```nginx
 server {
     server_name book.photos.example.com;
@@ -180,6 +188,7 @@ Docker support is planned for easier deployment.
 ## Development
 
 Clone and install:
+
 ```bash
 git clone https://github.com/ch1bo/immich-book.git
 cd immich-book
@@ -187,12 +196,14 @@ npm install
 ```
 
 Create a `.env` file to avoid CORS issues:
+
 ```bash
 # .env
 VITE_IMMICH_PROXY_TARGET=https://your-immich-server.com
 ```
 
 Start the development server:
+
 ```bash
 npm start
 ```
@@ -200,6 +211,7 @@ npm start
 The app will be available at http://localhost:5173
 
 Other commands:
+
 ```bash
 npm run build       # Build for production (output in dist/)
 npm run type-check  # Run TypeScript type checking
@@ -223,6 +235,7 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
 This means you are free to use, modify, and distribute this software, provided that:
+
 - You disclose the source code of any modifications
 - You license derivative works under AGPL-3.0
 - You provide source code access to users interacting with the software over a network (e.g., SaaS deployments)

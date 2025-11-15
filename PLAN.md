@@ -42,11 +42,13 @@ A web application that generates print-ready photo books from Immich albums, lev
 ### ⚠️ CORS Considerations (TODO - Needs Decision)
 
 **Current State (MVP):**
+
 - Pure client-side React app
 - Uses Vite dev proxy for development to bypass CORS
 - **Production deployment requires same-domain hosting** (e.g., `https://immich.example.com/book/`)
 
 **Future Options:**
+
 1. **Keep Simple (Current)**: Deploy as static app on same domain as Immich (via reverse proxy)
    - Pros: Simple, no backend needed, cheap hosting
    - Cons: Requires access to Immich server/reverse proxy config
@@ -68,28 +70,33 @@ A web application that generates print-ready photo books from Immich albums, lev
 - Built-in download via toolbar
 
 **Current State:**
+
 - Layout calculated at 300 DPI for accuracy, converted to 72 DPI points for PDF output
 - Live preview with PDFViewer component shows exact output
 - Consistent rendering between web preview and PDF (matching fonts, sizes, colors)
 - Support for custom page dimensions and combined page mode
 
 **Remaining Limitations:**
+
 - pdfkit (internal to react-pdf) produces 72 DPI output regardless of settings
 - Phase 3: Fix pdfkit to support high-quality PDF/X output at 300 DPI
 - Phase 3: Add proper print bleeds and color profiles
 
 **Previous Approach:**
+
 - Browser Print API + Print CSS - worked but lacked custom page size support
 
 ## Immich API Endpoints
 
 ### Authentication
+
 ```
 POST /api/auth/login
 Headers: API key or user credentials
 ```
 
 ### Album Operations
+
 ```
 GET /api/albums
 GET /api/albums/{albumId}
@@ -97,6 +104,7 @@ GET /api/albums/{albumId}/assets
 ```
 
 ### Asset Operations
+
 ```
 GET /api/assets/{assetId}
 GET /api/assets/{assetId}/thumbnail?size=preview
@@ -104,12 +112,14 @@ GET /api/assets/{assetId}/original
 ```
 
 ### Metadata
+
 - Asset metadata includes: description, EXIF data, location, date
 - Captions typically stored in `description` field
 
 ## Implementation Phases
 
 ### Phase 1: MVP (Minimum Viable Product)
+
 - [x] Connect to Immich API with API key
 - [x] List available albums
 - [x] Select an album and load all assets
@@ -122,6 +132,7 @@ GET /api/assets/{assetId}/original
 - [x] Combine pages feature (dual-page layout for print shops)
 
 ### Phase 2: Advanced Selection & Customization ✅ COMPLETED
+
 - [x] Improved preview with actual page layout and dimensions
 - [x] Filter assets (exclude videos toggle)
 - [x] Customize row heights (adjustable parameter)
@@ -142,6 +153,7 @@ GET /api/assets/{assetId}/original
 **Note:** General sorting (date, name, etc.) was not implemented, but manual drag & drop reordering provides more powerful control.
 
 ### Phase 3: Print Quality
+
 - [ ] Fix pdfkit to support high-quality PDF/X output at 300 DPI
 - [ ] Proper print bleeds
 - [ ] Color profile options (sRGB, CMYK)
@@ -172,22 +184,26 @@ GET /api/assets/{assetId}/original
 ## Technical Considerations
 
 ### Image Quality
+
 - Use high-resolution thumbnails or original images for print
 - Minimum 300 DPI for quality prints
 - Calculate required image dimensions based on page size
 
 ### Performance
+
 - Lazy load images during preview
 - Batch API requests
 - Consider pagination for large albums
 - Optimize image loading for PDF generation
 
 ### Browser Compatibility
+
 - Test PDF generation across browsers
 - Fallback options for older browsers
 - Consider progressive web app (PWA) features
 
 ### Security
+
 - Store API keys securely (not in localStorage for production)
 - Validate Immich URL and API access
 - Handle authentication errors gracefully
@@ -195,11 +211,13 @@ GET /api/assets/{assetId}/original
 ## Alternative Approaches
 
 ### Hybrid Approach
+
 - Use Immich for photo management
 - Export metadata to JSON
 - Use external layout tool (Canva API, Adobe Express)
 
 ### Plugin for Immich
+
 - Develop as Immich plugin/extension
 - Integrate directly into Immich UI
 - Could be contributed back to Immich project
@@ -207,12 +225,14 @@ GET /api/assets/{assetId}/original
 ## Print Service Integration (Future)
 
 ### Potential Services with APIs
+
 - Blurb (PDF upload)
 - Printful (API integration)
 - Lulu (PDF upload)
 - Local print shops
 
 ### Workflow
+
 1. Generate PDF in app
 2. Upload to print service via API
 3. Configure book specs (cover, paper type, binding)
@@ -221,16 +241,19 @@ GET /api/assets/{assetId}/original
 ## Resources
 
 ### Immich Documentation
+
 - API Documentation: Check Immich GitHub/docs
 - Source code: github.com/immich-app/immich
 - Gallery layout code: Study `immich-app/immich/web/src/lib/components/photos-page/`
 
 ### PDF Generation
+
 - Puppeteer: https://pptr.dev/
 - jsPDF: https://github.com/parallax/jsPDF
 - html2canvas: https://html2canvas.hertzen.com/
 
 ### Print Specs
+
 - Standard book sizes and DPI requirements
 - Bleed and margin specifications
 - Color profiles (sRGB vs CMYK)
@@ -240,6 +263,7 @@ GET /api/assets/{assetId}/original
 ### Inspiration: ImmichFrame Approach
 
 ImmichFrame provides an excellent model for marketing an Immich community tool:
+
 - **Clear value proposition**: "Turn your Immich albums into beautiful photo books"
 - **Simple setup**: URL + API key (proven UX pattern in Immich ecosystem)
 - **Multiple deployment options**: Web app, Docker, desktop apps, mobile
@@ -257,12 +281,14 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Target Audience
 
 **Primary Users:**
+
 - Immich users who want physical photo books
 - Families wanting to preserve memories
 - Event organizers (weddings, vacations, family reunions)
 - People migrating from Google Photos who miss photo book features
 
 **Use Cases:**
+
 - Annual family photo books
 - Vacation albums
 - Baby's first year
@@ -281,24 +307,28 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Go-to-Market Strategy
 
 **Phase 1: Community Launch**
+
 - Share in Immich Discord/GitHub discussions
 - Post on r/selfhosted, r/immich
 - Add to awesome-immich list
 - Focus on early adopter feedback
 
 **Phase 2: Polish & Documentation**
+
 - Professional landing page (like immichframe.online)
 - Video tutorials
 - Template gallery
 - Print service integration guides
 
 **Phase 3: Ecosystem Growth**
+
 - Desktop apps (Electron) for Windows/Mac/Linux
 - Mobile apps for on-device preview
 - Print service partnerships (Blurb, Lulu API integration)
 - Premium templates (optional paid add-on)
 
 **Phase 4: Potential Business Model** (Optional)
+
 - Core tool remains free and open source
 - Premium templates marketplace
 - Direct print integration service (handle upload/ordering)
@@ -308,17 +338,20 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Distribution Channels
 
 **Free & Open Source:**
+
 - GitHub repository
 - Docker Hub
 - npm package (if building CLI)
 - Immich community showcase
 
 **Web Hosting:**
+
 - Self-hosted via Docker
 - Optional hosted demo instance (read-only)
 - Netlify/Vercel for static web version
 
 **App Stores** (Future):
+
 - Chrome Web Store (PWA)
 - Microsoft Store
 - Mac App Store
@@ -327,18 +360,21 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Competitive Advantages
 
 **vs. Traditional Photo Book Services:**
+
 - Privacy: Photos never leave your control
 - Cost: No per-book fees for digital exports
 - Flexibility: Use any print service
 - Integration: Works with your existing photo library
 
 **vs. Manual PDF Creation:**
+
 - Automated layouts
 - Professional templates
 - Batch processing
 - Smart caption placement
 
 **vs. Other Immich Tools:**
+
 - Focused on one thing: beautiful photo books
 - Print-optimized output
 - Professional-grade PDF generation
@@ -346,6 +382,7 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Key Features for Marketing
 
 **Highlight in Landing Page:**
+
 - ✨ One-click album import from Immich
 - 🎨 AI-powered smart layouts
 - 📝 Automatic caption placement from metadata
@@ -358,12 +395,14 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Community Engagement
 
 **Build in Public:**
+
 - Regular development updates
 - Feature voting
 - Open roadmap
 - Contributor-friendly
 
 **Content Marketing:**
+
 - Blog posts: "Creating a Year-in-Review Photo Book from Immich"
 - Tutorials: "Best Practices for Photo Book Layouts"
 - Case studies: User stories and examples
@@ -372,12 +411,14 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Success Metrics
 
 **Community Adoption:**
+
 - GitHub stars
 - Docker pulls
 - Active installations
 - Community contributions
 
 **User Satisfaction:**
+
 - Feature requests addressed
 - Bug reports resolved
 - User testimonials
@@ -386,11 +427,13 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ### Partnerships & Integrations
 
 **Print Services:**
+
 - Partner with print-on-demand services
 - Affiliate programs
 - API integrations for one-click ordering
 
 **Immich Ecosystem:**
+
 - Feature in Immich newsletter
 - Contribute to Immich docs
 - Collaborate with other tool creators
@@ -398,6 +441,7 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 ## Next Steps
 
 **Phase 1 & 2 Completed:**
+
 1. ✅ Set up development environment
 2. ✅ Create basic React app with Immich API connection
 3. ✅ Implement album browsing and asset loading
@@ -407,6 +451,7 @@ ImmichFrame provides an excellent model for marketing an Immich community tool:
 7. ✅ Implement per-photo customizations (aspect ratio, reordering, label positions)
 
 **Phase 3 & Beyond:**
+
 1. Improve PDF quality (300 DPI output, proper bleeds, color profiles)
 2. Add general sorting options (by date, name, etc.)
 3. Add more filter options (date range, favorites, etc.)
