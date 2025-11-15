@@ -212,12 +212,25 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 > [!NOTE]
 > This is currently a "vibe coded" proof of concept. Code quality improvements are welcome!
 
-## License
-
-TODO: Decide on a license
-
 ## Acknowledgments
 
 - [Immich](https://immich.app/) - For the amazing self-hosted photo management platform
 - [@immich/justified-layout-wasm](https://www.npmjs.com/package/@immich/justified-layout-wasm) - For the layout algorithm
 - [@react-pdf/renderer](https://react-pdf.org/) - For PDF generation capabilities
+
+## License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+This means you are free to use, modify, and distribute this software, provided that:
+- You disclose the source code of any modifications
+- You license derivative works under AGPL-3.0
+- You provide source code access to users interacting with the software over a network (e.g., SaaS deployments)
+
+See the [LICENSE](LICENSE) file for the full terms.
+
+Commercial licensing is available if you wish to use this software in a commercial product or service without the open source requirements of AGPL-3.0, contact us immich-book@ncoding.at
+
+---
+
+**Copyright © 2025 Sebastian Nagel**

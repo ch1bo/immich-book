@@ -1,8 +1,19 @@
 {
   "name": "immich-book",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
+  "license": "AGPL-3.0",
+  "author": "Sebastian Nagel <immich-book@ncoding.at>",
+  "description": "Create beautiful photo books from your Immich albums",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ch1bo/immich-book.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ch1bo/immich-book/issues"
+  },
+  "homepage": "https://ch1bo.github.io/immich-book",
   "scripts": {
     "start": "vite",
     "build": "vite build",
