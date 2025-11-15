@@ -21,6 +21,8 @@
           buildInputs = with pkgs; [
             claude-code
             nodePackages.prettier
+            typescript
+            typescript-language-server
           ];
         };
       }

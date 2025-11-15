@@ -1,33 +1,61 @@
-import { useState, useEffect } from 'react'
-import { getAllAlbums, type AlbumResponseDto } from '@immich/sdk'
-import type { ImmichConfig } from './ConnectionForm'
+import { useState, useEffect } from "react";
+import { getAllAlbums, type AlbumResponseDto } from "@immich/sdk";
+import type { ImmichConfig } from "./ConnectionForm";
 
 interface AlbumSelectorProps {
-  immichConfig: ImmichConfig
-  onSelectAlbum: (album: AlbumResponseDto) => void
+  immichConfig: ImmichConfig;
+  onSelectAlbum: (album: AlbumResponseDto) => void;
 }
 
 function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
-  const [albums, setAlbums] = useState<AlbumResponseDto[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [albums, setAlbums] = useState<AlbumResponseDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadAlbums()
-  }, [])
+    loadAlbums();
+  }, []);
 
   const loadAlbums = async () => {
     try {
-      setIsLoading(true)
-      setError(null)
-      const albumList = await getAllAlbums({shared: true})
-      setAlbums(albumList)
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch both owned and shared albums concurrently
+      const [ownedAlbums, sharedAlbums] = await Promise.all([
+        getAllAlbums({}),
+        getAllAlbums({ shared: true }),
+      ]);
+
+      // Combine and deduplicate by album ID
+      const allAlbums = [...ownedAlbums];
+      const ownedIds = new Set(ownedAlbums.map((a) => a.id));
+
+      for (const album of sharedAlbums) {
+        if (!ownedIds.has(album.id)) {
+          allAlbums.push(album);
+        }
+      }
+      console.log(allAlbums);
+
+      // Sort by most recent asset
+      allAlbums.sort((a, b) => {
+        if (!a.endDate) {
+          return -1;
+        }
+        if (!b.endDate) {
+          return 1;
+        }
+        return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
+      });
+
+      setAlbums(allAlbums);
     } catch (err) {
-      setError((err as Error).message || 'Failed to load albums')
+      setError((err as Error).message || "Failed to load albums");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -35,7 +63,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         <p className="mt-4 text-gray-600">Loading albums...</p>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -51,7 +79,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   if (albums.length === 0) {
@@ -59,7 +87,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
       <div className="max-w-md mx-auto text-center py-12">
         <p className="text-gray-600">No albums found in your Immich library.</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -108,7 +136,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
                 {album.albumName}
               </h3>
               <p className="text-sm text-gray-500 mt-1">
-                {album.assetCount} {album.assetCount === 1 ? 'photo' : 'photos'}
+                {album.assetCount} {album.assetCount === 1 ? "photo" : "photos"}
               </p>
               {album.description && (
                 <p className="text-sm text-gray-600 mt-2 line-clamp-2">
@@ -120,7 +148,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
-export default AlbumSelector
+export default AlbumSelector;
