@@ -10,6 +10,112 @@ interface PhotoGridProps {
   onBack: () => void
 }
 
+interface GlobalConfig {
+  // Page settings
+  pageSize: 'A4' | 'LETTER' | 'A3' | 'CUSTOM'
+  orientation: 'portrait' | 'landscape'
+  pageWidth: number
+  pageHeight: number
+  margin: number
+  combinePages: boolean
+
+  // Layout settings
+  rowHeight: number
+  spacing: number
+  filterVideos: boolean
+}
+
+interface AlbumConfig extends GlobalConfig {
+  // Customizations (album-specific only)
+  customAspectRatios: Record<string, number>
+  customOrdering: string[] | null
+  descriptionPositions: Record<string, 'bottom' | 'top' | 'left' | 'right'>
+}
+
+const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
+  pageSize: 'CUSTOM',
+  orientation: 'portrait',
+  pageWidth: 2515,
+  pageHeight: 3260,
+  margin: 118,
+  combinePages: true,
+  rowHeight: 994,
+  spacing: 20,
+  filterVideos: true,
+}
+
+const DEFAULT_ALBUM_CONFIG: AlbumConfig = {
+  ...DEFAULT_GLOBAL_CONFIG,
+  customAspectRatios: {},
+  customOrdering: null,
+  descriptionPositions: {},
+}
+
+// Helper functions for config persistence
+function loadGlobalConfig(): GlobalConfig {
+  try {
+    const stored = localStorage.getItem('immich-book-global-config')
+    if (stored) {
+      return { ...DEFAULT_GLOBAL_CONFIG, ...JSON.parse(stored) }
+    }
+  } catch (e) {
+    console.error('Failed to load global config:', e)
+  }
+  return DEFAULT_GLOBAL_CONFIG
+}
+
+function saveGlobalConfig(config: GlobalConfig) {
+  try {
+    localStorage.setItem('immich-book-global-config', JSON.stringify(config))
+  } catch (e) {
+    console.error('Failed to save global config:', e)
+  }
+}
+
+function loadAlbumConfig(albumId: string): AlbumConfig {
+  const globalConfig = loadGlobalConfig()
+
+  try {
+    const stored = localStorage.getItem(`immich-book-config-${albumId}`)
+    if (stored) {
+      const albumSpecific = JSON.parse(stored)
+      return {
+        ...globalConfig,
+        customAspectRatios: {},
+        customOrdering: null,
+        descriptionPositions: {},
+        ...albumSpecific
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load album config:', e)
+  }
+
+  return { ...globalConfig, customAspectRatios: {}, customOrdering: null, descriptionPositions: {} }
+}
+
+function saveAlbumConfig(albumId: string, config: AlbumConfig) {
+  try {
+    localStorage.setItem(`immich-book-config-${albumId}`, JSON.stringify(config))
+
+    // Also update global config with page and layout settings
+    const globalConfig: GlobalConfig = {
+      pageSize: config.pageSize,
+      orientation: config.orientation,
+      pageWidth: config.pageWidth,
+      pageHeight: config.pageHeight,
+      margin: config.margin,
+      combinePages: config.combinePages,
+      rowHeight: config.rowHeight,
+      spacing: config.spacing,
+      filterVideos: config.filterVideos,
+    }
+    saveGlobalConfig(globalConfig)
+  } catch (e) {
+    console.error('Failed to save album config:', e)
+  }
+}
+
 // Convert 300 DPI pixels to 72 DPI points for PDF
 // At 300 DPI: 1 inch = 300 pixels
 // At 72 DPI: 1 inch = 72 points
@@ -99,55 +205,30 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<'preview' | 'pdf'>('preview')
 
-  const [rowHeight, setRowHeight] = useState(994) // in pixels
-  const [spacing, setSpacing] = useState(20) // in pixels
-  const [filterVideos, setFilterVideos] = useState(true) // exclude videos from layout
+  // Load config on mount
+  const initialConfig = useMemo(() => loadAlbumConfig(album.id), [album.id])
 
-  // Custom aspect ratios per asset (for layout manipulation)
-  const [customAspectRatios, setCustomAspectRatios] = useState<Map<string, number>>(() => {
-    // Load from localStorage on mount
-    const stored = localStorage.getItem(`immich-book-aspect-ratios-${album.id}`)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        return new Map(Object.entries(parsed))
-      } catch (e) {
-        console.error('Failed to parse stored aspect ratios:', e)
-      }
-    }
-    return new Map()
-  })
+  // Page settings
+  const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>(initialConfig.pageSize)
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>(initialConfig.orientation)
+  const [pageWidth, setPageWidth] = useState(initialConfig.pageWidth)
+  const [pageHeight, setPageHeight] = useState(initialConfig.pageHeight)
+  const [margin, setMargin] = useState(initialConfig.margin)
+  const [combinePages, setCombinePages] = useState(initialConfig.combinePages)
 
-  // Custom ordering of assets (null = use default order)
-  const [customOrdering, setCustomOrdering] = useState<string[] | null>(() => {
-    // Load from localStorage on mount
-    const stored = localStorage.getItem(`immich-book-ordering-${album.id}`)
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch (e) {
-        console.error('Failed to parse stored ordering:', e)
-      }
-    }
-    return null
-  })
+  // Layout settings
+  const [rowHeight, setRowHeight] = useState(initialConfig.rowHeight)
+  const [spacing, setSpacing] = useState(initialConfig.spacing)
+  const [filterVideos, setFilterVideos] = useState(initialConfig.filterVideos)
 
-  // Description positions per asset
-  // 'bottom' | 'top' | 'left' | 'right'
-  type DescriptionPosition = 'bottom' | 'top' | 'left' | 'right'
-  const [descriptionPositions, setDescriptionPositions] = useState<Map<string, DescriptionPosition>>(() => {
-    // Load from localStorage on mount
-    const stored = localStorage.getItem(`immich-book-description-positions-${album.id}`)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        return new Map(Object.entries(parsed))
-      } catch (e) {
-        console.error('Failed to parse stored description positions:', e)
-      }
-    }
-    return new Map()
-  })
+  // Customizations
+  const [customAspectRatios, setCustomAspectRatios] = useState<Map<string, number>>(
+    () => new Map(Object.entries(initialConfig.customAspectRatios))
+  )
+  const [customOrdering, setCustomOrdering] = useState<string[] | null>(initialConfig.customOrdering)
+  const [descriptionPositions, setDescriptionPositions] = useState<Map<string, 'bottom' | 'top' | 'left' | 'right'>>(
+    () => new Map(Object.entries(initialConfig.descriptionPositions))
+  )
 
   // Drag state for reordering
   const [reorderDragState, setReorderDragState] = useState<{
@@ -166,46 +247,56 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     originalWidth: number
   } | null>(null)
 
-  // Page settings
-  const [pageSize, setPageSize] = useState<'A4' | 'LETTER' | 'A3' | 'CUSTOM'>('CUSTOM')
-  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
-  const [margin, setMargin] = useState(118) // in pixels (10mm at 300 DPI)
-  const [customWidth, setCustomWidth] = useState(2515) // saal digital default
-  const [customHeight, setCustomHeight] = useState(3260) // saal digital default
-  const [combinePages, setCombinePages] = useState(true) // combine two pages into one PDF page
+  // Update page dimensions when size or orientation changes
+  useEffect(() => {
+    if (pageSize !== 'CUSTOM') {
+      const dimensions = PAGE_SIZES[pageSize][orientation]
+      setPageWidth(dimensions.width)
+      setPageHeight(dimensions.height)
+    }
+  }, [pageSize, orientation])
 
   useEffect(() => {
     loadAlbumAssets()
+
+    // Clean up old localStorage keys (migration)
+    localStorage.removeItem(`immich-book-aspect-ratios-${album.id}`)
+    localStorage.removeItem(`immich-book-ordering-${album.id}`)
+    localStorage.removeItem(`immich-book-description-positions-${album.id}`)
   }, [album.id])
 
-  // Save custom aspect ratios to localStorage whenever they change
+  // Save config to localStorage whenever it changes
   useEffect(() => {
-    if (customAspectRatios.size > 0) {
-      const obj = Object.fromEntries(customAspectRatios)
-      localStorage.setItem(`immich-book-aspect-ratios-${album.id}`, JSON.stringify(obj))
-    } else {
-      localStorage.removeItem(`immich-book-aspect-ratios-${album.id}`)
+    const config: AlbumConfig = {
+      pageSize,
+      orientation,
+      pageWidth,
+      pageHeight,
+      margin,
+      combinePages,
+      rowHeight,
+      spacing,
+      filterVideos,
+      customAspectRatios: Object.fromEntries(customAspectRatios),
+      customOrdering,
+      descriptionPositions: Object.fromEntries(descriptionPositions),
     }
-  }, [customAspectRatios, album.id])
-
-  // Save custom ordering to localStorage whenever it changes
-  useEffect(() => {
-    if (customOrdering) {
-      localStorage.setItem(`immich-book-ordering-${album.id}`, JSON.stringify(customOrdering))
-    } else {
-      localStorage.removeItem(`immich-book-ordering-${album.id}`)
-    }
-  }, [customOrdering, album.id])
-
-  // Save description positions to localStorage whenever they change
-  useEffect(() => {
-    if (descriptionPositions.size > 0) {
-      const obj = Object.fromEntries(descriptionPositions)
-      localStorage.setItem(`immich-book-description-positions-${album.id}`, JSON.stringify(obj))
-    } else {
-      localStorage.removeItem(`immich-book-description-positions-${album.id}`)
-    }
-  }, [descriptionPositions, album.id])
+    saveAlbumConfig(album.id, config)
+  }, [
+    album.id,
+    pageSize,
+    orientation,
+    pageWidth,
+    pageHeight,
+    margin,
+    combinePages,
+    rowHeight,
+    spacing,
+    filterVideos,
+    customAspectRatios,
+    customOrdering,
+    descriptionPositions,
+  ])
 
   const loadAlbumAssets = async () => {
     try {
@@ -360,16 +451,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
   // Calculate content width for snapping
   const contentWidth = useMemo(() => {
-    let pageDimensions: { width: number; height: number }
-    if (pageSize === 'CUSTOM' && customWidth && customHeight) {
-      pageDimensions = { width: customWidth, height: customHeight }
-    } else if (pageSize !== 'CUSTOM') {
-      pageDimensions = PAGE_SIZES[pageSize][orientation]
-    } else {
-      pageDimensions = PAGE_SIZES.A4.portrait
-    }
-    return pageDimensions.width - margin * 2
-  }, [pageSize, orientation, margin, customWidth, customHeight])
+    return pageWidth - margin * 2
+  }, [pageWidth, margin])
 
   // Calculate unified page layout - single source of truth!
   const pages = useMemo(() => {
@@ -400,17 +483,17 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     })
 
     return calculatePageLayout(filteredAssets, {
-      pageSize,
-      orientation,
+      pageSize: 'CUSTOM',
+      orientation: 'portrait',
       margin,
       rowHeight,
       spacing,
-      customWidth,
-      customHeight,
+      customWidth: pageWidth,
+      customHeight: pageHeight,
       combinePages,
       customAspectRatios: adjustedAspectRatios,
     })
-  }, [filteredAssets, pageSize, orientation, margin, rowHeight, spacing, customWidth, customHeight, combinePages, customAspectRatios, descriptionPositions])
+  }, [filteredAssets, margin, rowHeight, spacing, pageWidth, pageHeight, combinePages, customAspectRatios, descriptionPositions])
 
   // Handle aspect ratio drag
   useEffect(() => {
@@ -571,8 +654,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
         </div>
 
         <div className="flex flex-col gap-2">
+          {/* Page and Layout Settings Group */}
+          <div className="p-4 bg-gray-50 rounded-lg border-2 border-gray-300">
+            {/* Header */}
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">Page & Layout Settings</h3>
+            </div>
+
           {/* Page settings row */}
-          <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-4 p-3 bg-white rounded border border-gray-200">
             <div className="flex items-center gap-2">
               <label htmlFor="pageSize" className="text-sm text-gray-700">
                 Size:
@@ -593,14 +683,14 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
             {pageSize === 'CUSTOM' ? (
               <>
                 <div className="flex items-center gap-2">
-                  <label htmlFor="customWidth" className="text-sm text-gray-700">
+                  <label htmlFor="pageWidth" className="text-sm text-gray-700">
                     Width:
                   </label>
                   <input
                     type="number"
-                    id="customWidth"
-                    value={customWidth}
-                    onChange={(e) => setCustomWidth(Number(e.target.value))}
+                    id="pageWidth"
+                    value={pageWidth}
+                    onChange={(e) => setPageWidth(Number(e.target.value))}
                     min="1000"
                     max="10000"
                     step="1"
@@ -609,14 +699,14 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   <span className="text-xs text-gray-600">px</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label htmlFor="customHeight" className="text-sm text-gray-700">
+                  <label htmlFor="pageHeight" className="text-sm text-gray-700">
                     Height:
                   </label>
                   <input
                     type="number"
-                    id="customHeight"
-                    value={customHeight}
-                    onChange={(e) => setCustomHeight(Number(e.target.value))}
+                    id="pageHeight"
+                    value={pageHeight}
+                    onChange={(e) => setPageHeight(Number(e.target.value))}
                     min="1000"
                     max="10000"
                     step="1"
@@ -657,7 +747,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           </div>
 
           {/* Layout settings row */}
-          <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-4 p-3 bg-white rounded border border-gray-200 mt-2">
             <div className="flex items-center gap-2">
               <label htmlFor="margin" className="text-sm text-gray-700">
                 Margin:
@@ -685,7 +775,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 value={rowHeight}
                 onChange={(e) => setRowHeight(Number(e.target.value))}
                 min="100"
-                max={customHeight}
+                max={pageHeight}
                 step="10"
                 className="px-2 py-1 w-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -721,6 +811,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                 Exclude Videos
               </label>
             </div>
+          </div>
           </div>
 
           {/* Generate PDF / Back to Edit button */}
