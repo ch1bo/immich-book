@@ -53,15 +53,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    color: 'white',
-    fontSize: 10,
-  },
-  dateOverlayTopRightNoFill: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    color: 'white',
-    fontSize: 10,
   },
   descriptionBottom: {
     position: 'absolute',
@@ -84,16 +75,12 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   descriptionLeft: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    color: 'white',
     fontSize: 11,
     padding: 8,
     display: 'flex',
     justifyContent: 'center',
   },
   descriptionRight: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    color: 'white',
     fontSize: 11,
     padding: 8,
     display: 'flex',
@@ -321,6 +308,11 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     setCustomOrdering(null)
   }
 
+  // Reset all description position customizations
+  const handleResetDescriptionPositions = () => {
+    setDescriptionPositions(new Map())
+  }
+
   // Cycle description position
   const handleDescriptionClick = (assetId: string, event: React.MouseEvent) => {
     event.preventDefault()
@@ -527,7 +519,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           <p className="text-gray-600 mt-1">
             {filteredAssets.length} {filteredAssets.length !== assets.length && `of ${assets.length}`} photos
           </p>
-          {(customAspectRatios.size > 0 || customOrdering !== null) && (
+          {(customAspectRatios.size > 0 || customOrdering !== null || descriptionPositions.size > 0) && (
             <div className="mt-2 space-y-2">
               {customAspectRatios.size > 0 && (
                 <div className="flex items-center gap-3">
@@ -556,6 +548,21 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     title="Reset to default ordering"
                   >
                     Reset Ordering
+                  </button>
+                </div>
+              )}
+              {descriptionPositions.size > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1 text-sm text-gray-600">
+                    <span className="w-2 h-2 bg-purple-500 rounded-full" />
+                    {descriptionPositions.size} label position change{descriptionPositions.size !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={handleResetDescriptionPositions}
+                    className="text-sm px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-md transition-colors"
+                    title="Reset label positions"
+                  >
+                    Reset Label Positions
                   </button>
                 </div>
               )}
@@ -791,7 +798,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             width: imageWidth,
                             height: toPoints(photoBox.height),
                           }]}>
-                            <Text style={{ color: 'white', fontSize: 11 }}>{photoBox.asset.exifInfo.description}</Text>
+                            <Text style={{ color: 'black', fontSize: 11 }}>{photoBox.asset.exifInfo.description}</Text>
                           </View>
                         )}
 
@@ -817,7 +824,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             width: imageWidth,
                             height: toPoints(photoBox.height),
                           }]}>
-                            <Text style={{ color: 'white', fontSize: 11 }}>{photoBox.asset.exifInfo.description}</Text>
+                            <Text style={{ color: 'black', fontSize: 11 }}>{photoBox.asset.exifInfo.description}</Text>
                           </View>
                         )}
 
@@ -832,12 +839,12 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               case 'left':
                                 return styles.dateOverlayTopLeftNoFill
                               case 'right':
-                                return styles.dateOverlayTopRightNoFill
+                                return { position: 'absolute', top: 8, left: imageWidth + 8 }
                               default:
                                 return styles.dateOverlayTopRight
                             }
                           })()}>
-                            <Text style={{ color: 'white', fontSize: 10 }}>
+                            <Text style={{ color: descPosition === 'left' || descPosition === 'right' ? 'black' : 'white', fontSize: 10 }}>
                               {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
                                 year: 'numeric',
                                 month: 'short',
@@ -963,7 +970,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                       {/* Description on left (when position is 'left') */}
                       {hasDescription && descPosition === 'left' && (
                         <div
-                          className="bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors flex items-center justify-center"
+                          className="text-black text-sm p-2 cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-center"
                           style={{ width: `${imageWidth}px`, flexShrink: 0 }}
                           onClick={(e) => handleDescriptionClick(photoBox.asset.id, e)}
                           title="Click to change position"
@@ -980,22 +987,23 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         loading="lazy"
                       />
                       {photoBox.asset.fileCreatedAt && (() => {
-                        const getDateClassName = () => {
+                        const getDateConfig = () => {
                           switch (descPosition) {
                             case 'bottom':
-                              return 'absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm'
+                              return { className: 'absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm', style: {} }
                             case 'top':
-                              return 'absolute bottom-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm'
+                              return { className: 'absolute bottom-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm', style: {} }
                             case 'left':
-                              return 'absolute top-2 left-2 text-white text-xs'
+                              return { className: 'absolute top-2 left-2 text-black text-xs', style: {} }
                             case 'right':
-                              return 'absolute top-2 right-2 text-white text-xs'
+                              return { className: 'absolute top-2 text-black text-xs', style: { left: `${imageWidth + 8}px` } }
                             default:
-                              return 'absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm'
+                              return { className: 'absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm', style: {} }
                           }
                         }
+                        const config = getDateConfig()
                         return (
-                          <div className={getDateClassName()}>
+                          <div className={config.className} style={config.style}>
                             {new Date(photoBox.asset.fileCreatedAt).toLocaleDateString(undefined, {
                               year: 'numeric',
                               month: 'short',
@@ -1046,7 +1054,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                       {/* Description on right (when position is 'right') */}
                       {hasDescription && descPosition === 'right' && (
                         <div
-                          className="bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors flex items-center justify-center"
+                          className="text-black text-sm p-2 cursor-pointer hover:bg-gray-100 transition-colors flex items-center justify-center"
                           style={{ width: `${imageWidth}px`, flexShrink: 0 }}
                           onClick={(e) => handleDescriptionClick(photoBox.asset.id, e)}
                           title="Click to change position"
