@@ -1,11 +1,21 @@
 # Immich Book
 
-Create photo books from [Immich](https://immich.app/) albums.
-
-> [!WARNING]
-> This is merely a vibe coded proof of concept right now .. Don't judge me for code quality!
+Create beautiful photo books from your [Immich](https://immich.app/) albums.
 
 A web application that generates print-ready photo books from your Immich albums using the official Immich SDK.
+
+## Why Immich Book?
+
+Your photos are already organized in Immich albums. Immich Book turns those curated collections into professional-quality photo books you can print or share as PDFs.
+
+- **Privacy-first**: Your photos stay on your server
+- **No subscriptions**: Free and open source
+- **Full control**: Customize every aspect of your photo book
+- **Print anywhere**: Export high-quality PDFs to any print service
+
+## Demo
+
+<!-- TODO: Add screenshots/video demo here -->
 
 ## Features
 
@@ -36,38 +46,66 @@ A web application that generates print-ready photo books from your Immich albums
 - Quick edit links to Immich asset pages
 - Clean, responsive UI built with React and Tailwind CSS
 
-## Quick Start
+## Getting Started
 
-### Prerequisites
+You will need:
 
 - An Immich server with API access
-- An Immich API key (generate in: Account Settings → API Keys)
+- An Immich API key with the following permissions:
+  - `album.read` - To browse and list albums
+  - `asset.read` - To read asset metadata (descriptions, dates, etc.)
+  - `asset.view` - To access photo thumbnails and images
 
-### Installation
+### Creating an API Key
 
-```bash
-npm install
+1. Log into your Immich instance
+2. Go to **Account Settings** → **API Keys**
+3. Click **New API Key**
+4. Give it a descriptive name (e.g., "Immich Book")
+5. Select the required permissions:
+   - `album.read`
+   - `asset.read`
+   - `asset.view`
+6. Click **Create**
+7. Copy the API key (you won't be able to see it again!)
 
-# Configure development proxy (for CORS)
-cp .env.example .env
+### Using the Hosted Version
 
-npm start
+> [!WARNING]
+> **Security Notice:** When using the hosted instance, your API key may be captured by whoever controls that domain. Only proceed if you trust the hosting provider! Anyone who controls the hosting can potentially access all your photos through your API key. For maximum security, consider self-hosting.
+
+**Official hosted instance:** https://ch1bo.github.io/immich-book
+
+#### Enable CORS on Your Immich Server
+
+To use the hosted version, you need to allow CORS requests from the hosted domain. Add this to your Immich server's nginx configuration (inside the `server` block or `location /api` block):
+
+```nginx
+# Allow CORS for the official hosted instance
+if ($request_method = 'OPTIONS') {
+    add_header 'Access-Control-Allow-Origin' 'https://ch1bo.github.io' always;
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'x-api-key, Content-Type, Accept' always;
+    add_header 'Access-Control-Max-Age' 1728000;
+    add_header 'Content-Type' 'text/plain charset=UTF-8';
+    add_header 'Content-Length' 0;
+    return 204;
+}
+
+add_header 'Access-Control-Allow-Origin' 'https://ch1bo.github.io' always;
+add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+add_header 'Access-Control-Allow-Headers' 'x-api-key, Content-Type, Accept' always;
 ```
 
-#### Development Configuration
+**Important:**
+- Never use `Access-Control-Allow-Origin: *` (wildcard) - it's a security risk
+- Only add CORS headers for domains you trust
+- Reload nginx after changes: `sudo nginx -s reload`
 
-To avoid CORS issues during development, create a `.env` file:
-
-```bash
-# .env
-VITE_IMMICH_PROXY_TARGET=https://photos.ncoding.at
-```
-
-Replace `https://photos.ncoding.at` with your Immich server URL. The Vite dev server will proxy API requests to avoid CORS errors.
-
-### Usage
+### Using Immich Book
 
 1. **Connect to Immich**
+   - Visit https://ch1bo.github.io/immich-book
    - Enter your Immich server URL (e.g., `https://immich.example.com`)
    - Enter your API key
    - Click "Connect"
@@ -75,7 +113,6 @@ Replace `https://photos.ncoding.at` with your Immich server URL. The Vite dev se
 2. **Select an Album**
    - Browse your albums
    - Click on an album to open it
-   - The app will automatically reconnect to your last used album on reload
 
 3. **Configure Page Layout**
    - **Page Setup**: Adjust width, height, and combine pages option
@@ -87,39 +124,100 @@ Replace `https://photos.ncoding.at` with your Immich server URL. The Vite dev se
    - **Drag & drop** photos to reorder them
    - **Click descriptions** to cycle position (bottom → top → left → right)
    - View customization indicators (blue = aspect ratio, green = reordered, purple = label position)
-   - **Click Edit** button (on hover) to open asset in Immich
 
 5. **Generate PDF**
    - Click "Generate PDF" to preview
    - Use the PDF viewer toolbar to download
    - Click "Back to Edit" to make changes
 
-## Build for Production
+### Self-Hosting (Recommended)
 
+Self-hosting on the same domain as your Immich server is the most secure option and doesn't require CORS configuration.
+
+First, build the application:
 ```bash
+git clone https://github.com/ch1bo/immich-book.git
+cd immich-book
+npm install
 npm run build
 ```
 
-The built files will be in the `dist/` directory.
+#### Option 1: Subdirectory Deployment
 
-### Production Deployment
+Deploy to a subdirectory of your Immich domain (e.g., `https://photos.example.com/book/`).
 
-**Important:** To avoid CORS issues in production, deploy the static build on the **same domain** as your Immich server:
-
-**Option 1: Subdirectory (Recommended)**
-Deploy to a subdirectory of your Immich domain:
-- Example: `https://photos.example.com/book/`
-- Configure your reverse proxy (nginx/Caddy) to serve the static files
-
-**Option 2: Subdomain**
-Deploy to a subdomain:
-- Example: `https://book.photos.example.com/`
-- Ensure both the main domain and subdomain share cookies/CORS settings
-
-**Example nginx configuration:**
+Configure nginx (or your reverse proxy):
 ```nginx
 location /book/ {
     alias /path/to/immich-book/dist/;
     try_files $uri $uri/ /book/index.html;
 }
 ```
+
+Reload nginx, for example using `sudo nginx -s reload`
+
+#### Option 2: Subdomain Deployment
+
+Deploy to a subdomain (e.g., `https://book.photos.example.com/`).
+
+Configure nginx (or your reverse proxy):
+```nginx
+server {
+    server_name book.photos.example.com;
+    root /path/to/immich-book/dist;
+    try_files $uri $uri/ /index.html;
+
+    # Add SSL configuration as needed
+}
+```
+
+Reload nginx, for example using `sudo nginx -s reload`
+
+#### Option 3: Docker (Coming Soon)
+
+Docker support is planned for easier deployment.
+
+## Development
+
+Clone and install:
+```bash
+git clone https://github.com/ch1bo/immich-book.git
+cd immich-book
+npm install
+```
+
+Create a `.env` file to avoid CORS issues:
+```bash
+# .env
+VITE_IMMICH_PROXY_TARGET=https://your-immich-server.com
+```
+
+Start the development server:
+```bash
+npm start
+```
+
+The app will be available at http://localhost:5173
+
+Other commands:
+```bash
+npm run build       # Build for production (output in dist/)
+npm run type-check  # Run TypeScript type checking
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+> [!NOTE]
+> This is currently a "vibe coded" proof of concept. Code quality improvements are welcome!
+
+## License
+
+TODO: Decide on a license
+
+## Acknowledgments
+
+- [Immich](https://immich.app/) - For the amazing self-hosted photo management platform
+- [@immich/justified-layout-wasm](https://www.npmjs.com/package/@immich/justified-layout-wasm) - For the layout algorithm
+- [@react-pdf/renderer](https://react-pdf.org/) - For PDF generation capabilities
