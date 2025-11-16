@@ -111,10 +111,10 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
           <button
             key={album.id}
             onClick={() => onSelectAlbum(album)}
-            className="text-left bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden"
+            className="flex flex-col text-left bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden"
           >
             {album.albumThumbnailAssetId ? (
-              <div className="aspect-video bg-gray-200 relative overflow-hidden">
+              <div className="h-48 bg-gray-200 relative overflow-hidden">
                 <img
                   src={`${immichConfig.baseUrl}/assets/${album.albumThumbnailAssetId}/thumbnail?size=preview&apiKey=${immichConfig.apiKey}`}
                   alt={album.albumName}
@@ -122,7 +122,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
                 />
               </div>
             ) : (
-              <div className="aspect-video bg-gray-200 flex items-center justify-center">
+              <div className="h-48 bg-gray-200 flex items-center justify-center">
                 <svg
                   className="w-12 h-12 text-gray-400"
                   fill="none"
