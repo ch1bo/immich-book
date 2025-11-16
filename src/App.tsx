@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { init, getAlbumInfo, type AlbumResponseDto } from "@immich/sdk";
+import { init, type AlbumResponseDto } from "@immich/sdk";
 import ConnectionForm, { type ImmichConfig } from "./components/ConnectionForm";
 import AlbumSelector from "./components/AlbumSelector";
 import PhotoGrid from "./components/PhotoGrid";
@@ -9,7 +9,6 @@ function App() {
   const [selectedAlbum, setSelectedAlbum] = useState<AlbumResponseDto | null>(
     null,
   );
-  const [isLoadingAlbum, setIsLoadingAlbum] = useState(false);
 
   // Check for reset parameter in URL to clear localStorage
   useEffect(() => {
@@ -134,11 +133,6 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!immichConfig ? (
           <ConnectionForm onConnect={handleConnect} />
-        ) : isLoadingAlbum ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <p className="mt-4 text-gray-600">Loading last album...</p>
-          </div>
         ) : !selectedAlbum ? (
           <AlbumSelector
             immichConfig={immichConfig}

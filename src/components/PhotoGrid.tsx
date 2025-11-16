@@ -720,8 +720,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   return (
     <div>
       {/* Controls */}
-      <div className="mb-6 flex flex-1 items-start justify-between gap-8">
-        <div>
+      <div className="mb-6 flex flex-col lg:flex-row flex-1 items-start lg:justify-between gap-4 lg:gap-8">
+        <div className="w-full lg:w-auto">
           <button
             onClick={onBack}
             className="text-blue-600 hover:text-blue-800 mb-2"
@@ -755,164 +755,173 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 w-full lg:w-auto">
           {/* 1. Page Setup */}
           <div className="p-2 bg-gray-50 rounded border border-gray-300">
-            <div className="flex items-center gap-4">
-              <h3 className="text-xs font-semibold text-gray-700 w-28">Page</h3>
-              <div className="flex items-center gap-1">
-                <label htmlFor="pageWidth" className="text-gray-600 text-xs">
-                  Width:
-                </label>
-                <input
-                  type="number"
-                  id="pageWidth"
-                  value={pageWidth}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!isNaN(value)) {
-                      setPageWidth(value);
-                    }
-                  }}
-                  min="1000"
-                  max="10000"
-                  className={`px-1 py-0.5 w-16 text-xs border rounded ${
-                    isPageWidthValid
-                      ? "border-gray-300"
-                      : "border-red-500 bg-red-50"
-                  }`}
-                />
-                <span className="text-xs text-gray-500">px</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <label htmlFor="pageHeight" className="text-gray-600 text-xs">
-                  Height:
-                </label>
-                <input
-                  type="number"
-                  id="pageHeight"
-                  value={pageHeight}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!isNaN(value)) {
-                      setPageHeight(value);
-                    }
-                  }}
-                  min="1000"
-                  max="10000"
-                  className={`px-1 py-0.5 w-16 text-xs border rounded ${
-                    isPageHeightValid
-                      ? "border-gray-300"
-                      : "border-red-500 bg-red-50"
-                  }`}
-                />
-                <span className="text-xs text-gray-500">px</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  id="combinePages"
-                  checked={combinePages}
-                  onChange={(e) => setCombinePages(e.target.checked)}
-                  className="h-3 w-3"
-                />
-                <label htmlFor="combinePages" className="text-xs text-gray-700">
-                  Combine Pages
-                </label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <h3 className="text-xs font-semibold text-gray-700 sm:w-28">
+                Page
+              </h3>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-1">
+                <div className="flex items-center gap-1">
+                  <label htmlFor="pageWidth" className="text-gray-600 text-xs">
+                    Width:
+                  </label>
+                  <input
+                    type="number"
+                    id="pageWidth"
+                    value={pageWidth}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (!isNaN(value)) {
+                        setPageWidth(value);
+                      }
+                    }}
+                    min="1000"
+                    max="10000"
+                    className={`px-1 py-0.5 w-16 text-xs border rounded ${
+                      isPageWidthValid
+                        ? "border-gray-300"
+                        : "border-red-500 bg-red-50"
+                    }`}
+                  />
+                  <span className="text-xs text-gray-500">px</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <label htmlFor="pageHeight" className="text-gray-600 text-xs">
+                    Height:
+                  </label>
+                  <input
+                    type="number"
+                    id="pageHeight"
+                    value={pageHeight}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (!isNaN(value)) {
+                        setPageHeight(value);
+                      }
+                    }}
+                    min="1000"
+                    max="10000"
+                    className={`px-1 py-0.5 w-16 text-xs border rounded ${
+                      isPageHeightValid
+                        ? "border-gray-300"
+                        : "border-red-500 bg-red-50"
+                    }`}
+                  />
+                  <span className="text-xs text-gray-500">px</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    id="combinePages"
+                    checked={combinePages}
+                    onChange={(e) => setCombinePages(e.target.checked)}
+                    className="h-3 w-3"
+                  />
+                  <label
+                    htmlFor="combinePages"
+                    className="text-xs text-gray-700"
+                  >
+                    Combine Pages
+                  </label>
+                </div>
               </div>
             </div>
           </div>
 
           {/* 2. Layout */}
           <div className="p-2 bg-gray-50 rounded border border-gray-300">
-            <div className="flex items-center gap-4">
-              <h3 className="text-xs font-semibold text-gray-700 w-28">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <h3 className="text-xs font-semibold text-gray-700 sm:w-28">
                 Layout
               </h3>
-              <div className="flex items-center gap-1">
-                <label htmlFor="margin" className="text-gray-600 text-xs">
-                  Margin:
-                </label>
-                <input
-                  type="number"
-                  id="margin"
-                  value={margin}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!isNaN(value)) {
-                      setMargin(value);
-                    }
-                  }}
-                  min="0"
-                  max={pageWidth / 2}
-                  step="10"
-                  className={`px-1 py-0.5 w-14 text-xs border rounded ${
-                    isMarginValid
-                      ? "border-gray-300"
-                      : "border-red-500 bg-red-50"
-                  }`}
-                />
-                <span className="text-xs text-gray-500">px</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <label htmlFor="rowHeight" className="text-gray-600 text-xs">
-                  Row Height:
-                </label>
-                <input
-                  type="number"
-                  id="rowHeight"
-                  value={rowHeight}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!isNaN(value)) {
-                      setRowHeight(value);
-                    }
-                  }}
-                  min="300"
-                  max={pageHeight}
-                  step="10"
-                  className={`px-1 py-0.5 w-14 text-xs border rounded ${
-                    isRowHeightValid
-                      ? "border-gray-300"
-                      : "border-red-500 bg-red-50"
-                  }`}
-                />
-                <span className="text-xs text-gray-500">px</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <label htmlFor="spacing" className="text-gray-600 text-xs">
-                  Spacing:
-                </label>
-                <input
-                  type="number"
-                  id="spacing"
-                  value={spacing}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!isNaN(value)) {
-                      setSpacing(value);
-                    }
-                  }}
-                  min="0"
-                  max="100"
-                  className={`px-1 py-0.5 w-12 text-xs border rounded ${
-                    isSpacingValid
-                      ? "border-gray-300"
-                      : "border-red-500 bg-red-50"
-                  }`}
-                />
-                <span className="text-xs text-gray-500">px</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-1">
+                <div className="flex items-center gap-1">
+                  <label htmlFor="margin" className="text-gray-600 text-xs">
+                    Margin:
+                  </label>
+                  <input
+                    type="number"
+                    id="margin"
+                    value={margin}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (!isNaN(value)) {
+                        setMargin(value);
+                      }
+                    }}
+                    min="0"
+                    max={pageWidth / 2}
+                    step="10"
+                    className={`px-1 py-0.5 w-14 text-xs border rounded ${
+                      isMarginValid
+                        ? "border-gray-300"
+                        : "border-red-500 bg-red-50"
+                    }`}
+                  />
+                  <span className="text-xs text-gray-500">px</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <label htmlFor="rowHeight" className="text-gray-600 text-xs">
+                    Row Height:
+                  </label>
+                  <input
+                    type="number"
+                    id="rowHeight"
+                    value={rowHeight}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (!isNaN(value)) {
+                        setRowHeight(value);
+                      }
+                    }}
+                    min="300"
+                    max={pageHeight}
+                    step="10"
+                    className={`px-1 py-0.5 w-14 text-xs border rounded ${
+                      isRowHeightValid
+                        ? "border-gray-300"
+                        : "border-red-500 bg-red-50"
+                    }`}
+                  />
+                  <span className="text-xs text-gray-500">px</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <label htmlFor="spacing" className="text-gray-600 text-xs">
+                    Spacing:
+                  </label>
+                  <input
+                    type="number"
+                    id="spacing"
+                    value={spacing}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (!isNaN(value)) {
+                        setSpacing(value);
+                      }
+                    }}
+                    min="0"
+                    max="100"
+                    className={`px-1 py-0.5 w-12 text-xs border rounded ${
+                      isSpacingValid
+                        ? "border-gray-300"
+                        : "border-red-500 bg-red-50"
+                    }`}
+                  />
+                  <span className="text-xs text-gray-500">px</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* 3. Presentation */}
           <div className="p-2 bg-gray-50 rounded border border-gray-300">
-            <div className="flex items-center gap-4">
-              <h3 className="text-xs font-semibold text-gray-700 w-28">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <h3 className="text-xs font-semibold text-gray-700 sm:w-28">
                 Presentation
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-1">
                   <input
                     type="checkbox"
@@ -964,11 +973,11 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
             customOrdering !== null ||
             descriptionPositions.size > 0) && (
             <div className="p-2 bg-gray-50 rounded border border-gray-300">
-              <div className="flex items-center gap-4">
-                <h3 className="text-xs font-semibold text-gray-700 w-28">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <h3 className="text-xs font-semibold text-gray-700 sm:w-28">
                   Customizations
                 </h3>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   {customOrdering !== null && (
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1 text-xs text-gray-600">
@@ -1020,7 +1029,10 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
       {mode === "pdf" ? (
         /* PDF Viewer */
-        <div className="w-full" style={{ height: "calc(100vh - 300px)" }}>
+        <div
+          className="w-full"
+          style={{ height: "calc(100vh - 200px)", minHeight: "400px" }}
+        >
           <PDFViewer width="100%" height="100%" showToolbar={true}>
             <Document pageLayout={pageLayout}>
               {pages.map((pageData) => {
@@ -1227,7 +1239,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
         </div>
       ) : (
         /* Live Preview */
-        <div className="space-y-8 pb-8">
+        <div className="space-y-8 pb-8 overflow-x-auto px-4 sm:px-0">
           {pages.map((page) => {
             // Scale down to match PDF dimensions (72 DPI from 300 DPI)
             const displayWidth = toPoints(page.width);
