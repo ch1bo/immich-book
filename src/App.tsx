@@ -17,8 +17,9 @@ function App() {
     if (params.get("reset") === "true") {
       console.log("Clearing all localStorage data...");
       localStorage.clear();
-      // Remove the parameter from URL
-      window.history.replaceState({}, "", window.location.pathname);
+      // Remove the parameter from URL, preserve hash
+      const hash = window.location.hash;
+      window.history.replaceState({}, "", window.location.pathname + hash);
       window.location.reload();
     }
   }, []);
@@ -39,18 +40,15 @@ function App() {
     }
   }, []);
 
-  // Get base path from environment
-  const basePath = import.meta.env.VITE_BASE_PATH || "/";
-
-  // Load album from URL if specified
+  // Load album from URL hash if specified
   useEffect(() => {
     if (!immichConfig) return;
 
-    const loadAlbumFromUrl = () => {
-      const pathname = window.location.pathname;
+    const loadAlbumFromHash = () => {
+      const hash = window.location.hash;
 
-      // Extract album ID from path like /immich-book/albums/<id> or /albums/<id>
-      const albumsMatch = pathname.match(/\/albums\/([^/]+)/);
+      // Extract album ID from hash like #/albums/<id>
+      const albumsMatch = hash.match(/#\/albums\/([^/]+)/);
       const albumId = albumsMatch ? albumsMatch[1] : null;
 
       if (albumId) {
@@ -63,8 +61,8 @@ function App() {
             })
             .catch((err) => {
               console.error("Failed to load album from URL:", err);
-              // Clear invalid album ID from URL - go back to album list
-              window.history.replaceState({}, "", basePath);
+              // Clear invalid album ID from hash - go back to album list
+              window.location.hash = "";
               setSelectedAlbum(null);
             })
             .finally(() => {
@@ -72,7 +70,7 @@ function App() {
             });
         }
       } else {
-        // No album in URL, clear selection
+        // No album in hash, clear selection
         if (selectedAlbum) {
           setSelectedAlbum(null);
         }
@@ -80,16 +78,16 @@ function App() {
     };
 
     // Load on mount
-    loadAlbumFromUrl();
+    loadAlbumFromHash();
 
-    // Handle browser back/forward
-    const handlePopState = () => {
-      loadAlbumFromUrl();
+    // Handle hash changes (browser back/forward, manual hash changes)
+    const handleHashChange = () => {
+      loadAlbumFromHash();
     };
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [immichConfig, basePath]);
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [immichConfig]);
 
   const handleConnect = (config: ImmichConfig) => {
     setImmichConfig(config);
@@ -99,21 +97,20 @@ function App() {
     setImmichConfig(null);
     setSelectedAlbum(null);
     localStorage.removeItem("immich-config");
-    // Navigate to base path
-    window.history.replaceState({}, "", basePath);
+    // Clear hash
+    window.location.hash = "";
   };
 
   const handleAlbumSelect = (album: AlbumResponseDto) => {
     setSelectedAlbum(album);
-    // Update URL to /albums/<id>
-    const newPath = `${basePath}albums/${album.id}`.replace(/\/+/g, "/");
-    window.history.pushState({}, "", newPath);
+    // Update hash to #/albums/<id>
+    window.location.hash = `/albums/${album.id}`;
   };
 
   const handleBackToAlbums = () => {
     setSelectedAlbum(null);
-    // Navigate back to album list
-    window.history.pushState({}, "", basePath);
+    // Clear hash to go back to album list
+    window.location.hash = "";
   };
 
   return (
