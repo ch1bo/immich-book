@@ -11,6 +11,18 @@ function App() {
   );
   const [isLoadingAlbum, setIsLoadingAlbum] = useState(false);
 
+  // Check for reset parameter in URL to clear localStorage
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "true") {
+      console.log("Clearing all localStorage data...");
+      localStorage.clear();
+      // Remove the parameter from URL
+      window.history.replaceState({}, "", window.location.pathname);
+      window.location.reload();
+    }
+  }, []);
+
   // Load config from localStorage on mount
   useEffect(() => {
     const savedConfig = localStorage.getItem("immich-config");
@@ -27,25 +39,27 @@ function App() {
     }
   }, []);
 
-  // Load last selected album when config is available
+  // Auto-opening disabled to prevent crashes from invalid cached config
+  // Users can manually select their album each time
   useEffect(() => {
     if (!immichConfig) return;
 
-    const savedAlbumId = localStorage.getItem("last-album-id");
-    if (savedAlbumId && !selectedAlbum) {
-      setIsLoadingAlbum(true);
-      getAlbumInfo({ id: savedAlbumId })
-        .then((album) => {
-          setSelectedAlbum(album);
-        })
-        .catch((err) => {
-          console.error("Failed to load saved album:", err);
-          localStorage.removeItem("last-album-id");
-        })
-        .finally(() => {
-          setIsLoadingAlbum(false);
-        });
-    }
+    // Don't auto-load albums to prevent issues with broken localStorage data
+    // const savedAlbumId = localStorage.getItem("last-album-id");
+    // if (savedAlbumId && !selectedAlbum) {
+    //   setIsLoadingAlbum(true);
+    //   getAlbumInfo({ id: savedAlbumId })
+    //     .then((album) => {
+    //       setSelectedAlbum(album);
+    //     })
+    //     .catch((err) => {
+    //       console.error("Failed to load saved album:", err);
+    //       localStorage.removeItem("last-album-id");
+    //     })
+    //     .finally(() => {
+    //       setIsLoadingAlbum(false);
+    //     });
+    // }
   }, [immichConfig]);
 
   const handleConnect = (config: ImmichConfig) => {

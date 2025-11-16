@@ -268,6 +268,30 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [spacing, setSpacing] = useState(initialConfig.spacing);
   const [filterVideos, setFilterVideos] = useState(initialConfig.filterVideos);
 
+  // Validation helpers
+  const isPageWidthValid = pageWidth >= 1000 && pageWidth <= 10000;
+  const isPageHeightValid = pageHeight >= 1000 && pageHeight <= 10000;
+  const isMarginValid = margin >= 0 && margin <= pageWidth / 2;
+  const isRowHeightValid = rowHeight >= 300 && rowHeight <= pageHeight;
+  const isSpacingValid = spacing >= 0 && spacing <= 100;
+
+  // Clamped values for use in layout calculations (prevent crashes from invalid values)
+  const validPageWidth = isPageWidthValid
+    ? pageWidth
+    : Math.max(1000, Math.min(10000, pageWidth));
+  const validPageHeight = isPageHeightValid
+    ? pageHeight
+    : Math.max(1000, Math.min(10000, pageHeight));
+  const validMargin = isMarginValid
+    ? margin
+    : Math.max(0, Math.min(validPageWidth / 2, margin));
+  const validRowHeight = isRowHeightValid
+    ? rowHeight
+    : Math.max(300, Math.min(validPageHeight, rowHeight));
+  const validSpacing = isSpacingValid
+    ? spacing
+    : Math.max(0, Math.min(100, spacing));
+
   // Display settings
   const [showDates, setShowDates] = useState(initialConfig.showDates);
   const [showDescriptions, setShowDescriptions] = useState(
@@ -320,8 +344,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     localStorage.removeItem(`immich-book-description-positions-${album.id}`);
   }, [album.id]);
 
-  // Save config to localStorage whenever it changes
+  // Save config to localStorage whenever it changes (with clamped values)
   useEffect(() => {
+    // Only save if all values are valid
+    if (
+      !isPageWidthValid ||
+      !isPageHeightValid ||
+      !isMarginValid ||
+      !isRowHeightValid ||
+      !isSpacingValid
+    ) {
+      return;
+    }
+
     const config: AlbumConfig = {
       pageSize,
       orientation,
@@ -355,6 +390,11 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     customAspectRatios,
     customOrdering,
     descriptionPositions,
+    isPageWidthValid,
+    isPageHeightValid,
+    isMarginValid,
+    isRowHeightValid,
+    isSpacingValid,
   ]);
 
   const loadAlbumAssets = async () => {
@@ -523,8 +563,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
   // Calculate content width for snapping
   const contentWidth = useMemo(() => {
-    return pageWidth - margin * 2;
-  }, [pageWidth, margin]);
+    return validPageWidth - validMargin * 2;
+  }, [validPageWidth, validMargin]);
 
   // Calculate unified page layout - single source of truth!
   const pages = useMemo(() => {
@@ -560,21 +600,21 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     return calculatePageLayout(filteredAssets, {
       pageSize: "CUSTOM",
       orientation: "portrait",
-      margin,
-      rowHeight,
-      spacing,
-      customWidth: pageWidth,
-      customHeight: pageHeight,
+      margin: validMargin,
+      rowHeight: validRowHeight,
+      spacing: validSpacing,
+      customWidth: validPageWidth,
+      customHeight: validPageHeight,
       combinePages,
       customAspectRatios: adjustedAspectRatios,
     });
   }, [
     filteredAssets,
-    margin,
-    rowHeight,
-    spacing,
-    pageWidth,
-    pageHeight,
+    validMargin,
+    validRowHeight,
+    validSpacing,
+    validPageWidth,
+    validPageHeight,
     combinePages,
     customAspectRatios,
     descriptionPositions,
@@ -598,15 +638,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       // Snap to full width when within threshold
       // Determine which page the image is on and snap to that page's right edge
       const snapThreshold = 50;
-      const singlePageWidth = contentWidth + margin;
+      const singlePageWidth = contentWidth + validMargin;
 
       // Calculate which page we're on (0-indexed)
       const pageIndex = Math.floor(
-        aspectDragState.originalX / (singlePageWidth + margin),
+        aspectDragState.originalX / (singlePageWidth + validMargin),
       );
 
       // Calculate this page's start X position
-      const pageStartX = pageIndex * (singlePageWidth + margin) + margin;
+      const pageStartX = pageIndex * (singlePageWidth + validMargin) + validMargin;
 
       // Calculate right edge relative to this page's start
       const rightEdge = aspectDragState.originalX - pageStartX + newWidth;
@@ -728,10 +768,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   type="number"
                   id="pageWidth"
                   value={pageWidth}
-                  onChange={(e) => setPageWidth(Number(e.target.value))}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (!isNaN(value)) {
+                      setPageWidth(value);
+                    }
+                  }}
                   min="1000"
                   max="10000"
-                  className="px-1 py-0.5 w-16 text-xs border border-gray-300 rounded"
+                  className={`px-1 py-0.5 w-16 text-xs border rounded ${
+                    isPageWidthValid
+                      ? "border-gray-300"
+                      : "border-red-500 bg-red-50"
+                  }`}
                 />
                 <span className="text-xs text-gray-500">px</span>
               </div>
@@ -743,10 +792,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   type="number"
                   id="pageHeight"
                   value={pageHeight}
-                  onChange={(e) => setPageHeight(Number(e.target.value))}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (!isNaN(value)) {
+                      setPageHeight(value);
+                    }
+                  }}
                   min="1000"
                   max="10000"
-                  className="px-1 py-0.5 w-16 text-xs border border-gray-300 rounded"
+                  className={`px-1 py-0.5 w-16 text-xs border rounded ${
+                    isPageHeightValid
+                      ? "border-gray-300"
+                      : "border-red-500 bg-red-50"
+                  }`}
                 />
                 <span className="text-xs text-gray-500">px</span>
               </div>
@@ -779,11 +837,20 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   type="number"
                   id="margin"
                   value={margin}
-                  onChange={(e) => setMargin(Number(e.target.value))}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (!isNaN(value)) {
+                      setMargin(value);
+                    }
+                  }}
                   min="0"
-                  max="590"
+                  max={pageWidth / 2}
                   step="10"
-                  className="px-1 py-0.5 w-14 text-xs border border-gray-300 rounded"
+                  className={`px-1 py-0.5 w-14 text-xs border rounded ${
+                    isMarginValid
+                      ? "border-gray-300"
+                      : "border-red-500 bg-red-50"
+                  }`}
                 />
                 <span className="text-xs text-gray-500">px</span>
               </div>
@@ -795,11 +862,20 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   type="number"
                   id="rowHeight"
                   value={rowHeight}
-                  onChange={(e) => setRowHeight(Number(e.target.value))}
-                  min="100"
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (!isNaN(value)) {
+                      setRowHeight(value);
+                    }
+                  }}
+                  min="300"
                   max={pageHeight}
                   step="10"
-                  className="px-1 py-0.5 w-14 text-xs border border-gray-300 rounded"
+                  className={`px-1 py-0.5 w-14 text-xs border rounded ${
+                    isRowHeightValid
+                      ? "border-gray-300"
+                      : "border-red-500 bg-red-50"
+                  }`}
                 />
                 <span className="text-xs text-gray-500">px</span>
               </div>
@@ -811,10 +887,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                   type="number"
                   id="spacing"
                   value={spacing}
-                  onChange={(e) => setSpacing(Number(e.target.value))}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    if (!isNaN(value)) {
+                      setSpacing(value);
+                    }
+                  }}
                   min="0"
                   max="100"
-                  className="px-1 py-0.5 w-12 text-xs border border-gray-300 rounded"
+                  className={`px-1 py-0.5 w-12 text-xs border rounded ${
+                    isSpacingValid
+                      ? "border-gray-300"
+                      : "border-red-500 bg-red-50"
+                  }`}
                 />
                 <span className="text-xs text-gray-500">px</span>
               </div>
