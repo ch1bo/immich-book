@@ -12,7 +12,8 @@ interface ConnectionFormProps {
 }
 
 function ConnectionForm({ onConnect }: ConnectionFormProps) {
-  const [serverUrl, setServerUrl] = useState("");
+  const proxyTarget = import.meta.env.VITE_IMMICH_PROXY_TARGET;
+  const [serverUrl, setServerUrl] = useState(proxyTarget || "");
   const [apiKey, setApiKey] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +25,7 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
 
     try {
       // If proxy is configured, use proxy path. Otherwise, use full URL
-      const useProxy = import.meta.env.VITE_IMMICH_PROXY_TARGET;
-      const baseUrl = useProxy ? "/api" : serverUrl.replace(/\/$/, "") + "/api";
+      const baseUrl = proxyTarget ? "/api" : serverUrl.replace(/\/$/, "") + "/api";
 
       // Initialize the SDK
       init({ baseUrl, apiKey });
@@ -55,11 +55,10 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
         <p className="text-sm text-gray-600 mb-6">
           Enter your Immich server URL and API key to get started.
         </p>
-        {import.meta.env.VITE_IMMICH_PROXY_TARGET && (
+        {proxyTarget && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-xs text-blue-800">
-              <strong>Dev Mode:</strong> Using proxy to{" "}
-              {import.meta.env.VITE_IMMICH_PROXY_TARGET}
+              <strong>Dev Mode:</strong> Using proxy to {proxyTarget}
             </p>
           </div>
         )}
@@ -118,8 +117,9 @@ function ConnectionForm({ onConnect }: ConnectionFormProps) {
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="https://immich.example.com"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required={!proxyTarget}
+              disabled={!!proxyTarget}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             />
           </div>
 

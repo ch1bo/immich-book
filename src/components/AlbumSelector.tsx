@@ -27,19 +27,14 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
         getAllAlbums({ shared: true }),
       ]);
 
-      // Combine and deduplicate by album ID
-      const allAlbums = [...ownedAlbums];
-      const ownedIds = new Set(ownedAlbums.map((a) => a.id));
-
-      for (const album of sharedAlbums) {
-        if (!ownedIds.has(album.id)) {
-          allAlbums.push(album);
-        }
-      }
-      console.log(allAlbums);
+      // Combine and deduplicate by album ID using Map
+      const allAlbums = [...ownedAlbums, ...sharedAlbums];
+      const uniqueAlbums = Array.from(
+        new Map(allAlbums.map((album) => [album.id, album])).values(),
+      );
 
       // Sort by most recent asset
-      allAlbums.sort((a, b) => {
+      uniqueAlbums.sort((a, b) => {
         if (!a.endDate) {
           return -1;
         }
@@ -49,9 +44,21 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
         return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
       });
 
-      setAlbums(allAlbums);
+      setAlbums(uniqueAlbums);
     } catch (err) {
-      setError((err as Error).message || "Failed to load albums");
+      const error = err as any;
+      let errorMessage = error.message || "Failed to load albums";
+
+      // Check if it's a 401 Unauthorized error
+      if (
+        error.status === 401 ||
+        errorMessage.includes("401") ||
+        errorMessage.includes("Unauthorized")
+      ) {
+        errorMessage = `Authentication failed: ${errorMessage}\n\nYour API key may have been revoked or expired. Please reconnect with a valid API key.`;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +77,7 @@ function AlbumSelector({ immichConfig, onSelectAlbum }: AlbumSelectorProps) {
     return (
       <div className="max-w-md mx-auto">
         <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-800">{error}</p>
+          <p className="text-sm text-red-800 whitespace-pre-line">{error}</p>
           <button
             onClick={loadAlbums}
             className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors shadow-sm font-medium"
