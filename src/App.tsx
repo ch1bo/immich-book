@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { init, type AlbumResponseDto } from "@immich/sdk";
+import { init, getAlbumInfo, type AlbumResponseDto } from "@immich/sdk";
 import ConnectionForm, { type ImmichConfig } from "./components/ConnectionForm";
 import AlbumSelector from "./components/AlbumSelector";
 import PhotoGrid from "./components/PhotoGrid";
@@ -9,6 +9,7 @@ function App() {
   const [selectedAlbum, setSelectedAlbum] = useState<AlbumResponseDto | null>(
     null,
   );
+  const [isLoadingAlbum, setIsLoadingAlbum] = useState(false);
 
   // Check for reset parameter in URL to clear localStorage
   useEffect(() => {
@@ -38,28 +39,57 @@ function App() {
     }
   }, []);
 
-  // Auto-opening disabled to prevent crashes from invalid cached config
-  // Users can manually select their album each time
+  // Get base path from environment
+  const basePath = import.meta.env.VITE_BASE_PATH || "/";
+
+  // Load album from URL if specified
   useEffect(() => {
     if (!immichConfig) return;
 
-    // Don't auto-load albums to prevent issues with broken localStorage data
-    // const savedAlbumId = localStorage.getItem("last-album-id");
-    // if (savedAlbumId && !selectedAlbum) {
-    //   setIsLoadingAlbum(true);
-    //   getAlbumInfo({ id: savedAlbumId })
-    //     .then((album) => {
-    //       setSelectedAlbum(album);
-    //     })
-    //     .catch((err) => {
-    //       console.error("Failed to load saved album:", err);
-    //       localStorage.removeItem("last-album-id");
-    //     })
-    //     .finally(() => {
-    //       setIsLoadingAlbum(false);
-    //     });
-    // }
-  }, [immichConfig]);
+    const loadAlbumFromUrl = () => {
+      const pathname = window.location.pathname;
+
+      // Extract album ID from path like /immich-book/albums/<id> or /albums/<id>
+      const albumsMatch = pathname.match(/\/albums\/([^/]+)/);
+      const albumId = albumsMatch ? albumsMatch[1] : null;
+
+      if (albumId) {
+        // Only load if different from current
+        if (!selectedAlbum || selectedAlbum.id !== albumId) {
+          setIsLoadingAlbum(true);
+          getAlbumInfo({ id: albumId })
+            .then((album) => {
+              setSelectedAlbum(album);
+            })
+            .catch((err) => {
+              console.error("Failed to load album from URL:", err);
+              // Clear invalid album ID from URL - go back to album list
+              window.history.replaceState({}, "", basePath);
+              setSelectedAlbum(null);
+            })
+            .finally(() => {
+              setIsLoadingAlbum(false);
+            });
+        }
+      } else {
+        // No album in URL, clear selection
+        if (selectedAlbum) {
+          setSelectedAlbum(null);
+        }
+      }
+    };
+
+    // Load on mount
+    loadAlbumFromUrl();
+
+    // Handle browser back/forward
+    const handlePopState = () => {
+      loadAlbumFromUrl();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [immichConfig, basePath]);
 
   const handleConnect = (config: ImmichConfig) => {
     setImmichConfig(config);
@@ -69,18 +99,21 @@ function App() {
     setImmichConfig(null);
     setSelectedAlbum(null);
     localStorage.removeItem("immich-config");
-    localStorage.removeItem("last-album-id");
+    // Navigate to base path
+    window.history.replaceState({}, "", basePath);
   };
 
   const handleAlbumSelect = (album: AlbumResponseDto) => {
     setSelectedAlbum(album);
-    // Save album ID to localStorage
-    localStorage.setItem("last-album-id", album.id);
+    // Update URL to /albums/<id>
+    const newPath = `${basePath}albums/${album.id}`.replace(/\/+/g, "/");
+    window.history.pushState({}, "", newPath);
   };
 
   const handleBackToAlbums = () => {
     setSelectedAlbum(null);
-    // Don't remove from localStorage - keep it for next time
+    // Navigate back to album list
+    window.history.pushState({}, "", basePath);
   };
 
   return (
@@ -133,6 +166,11 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!immichConfig ? (
           <ConnectionForm onConnect={handleConnect} />
+        ) : isLoadingAlbum ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <p className="mt-4 text-gray-600">Loading album...</p>
+          </div>
         ) : !selectedAlbum ? (
           <AlbumSelector
             immichConfig={immichConfig}
