@@ -18,6 +18,8 @@ import { calculatePageLayout, PAGE_SIZES } from "../utils/pageLayout";
 import type { ImmichConfig } from "./ConnectionForm";
 import roboto400 from "@fontsource/roboto/files/roboto-latin-400-normal.woff?url";
 import roboto500 from "@fontsource/roboto/files/roboto-latin-500-normal.woff?url";
+import Icon from "@mdi/react";
+import { mdiFormatAlignLeft, mdiFormatAlignRight } from "@mdi/js";
 
 // Register Roboto font for PDF using local bundled files
 Font.register({
@@ -314,7 +316,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   >(() => new Map(Object.entries(initialConfig.descriptionPositions)));
   const [pageAlignments, setPageAlignments] = useState<
     Map<number, "left" | "right">
-  >(() => new Map(Object.entries(initialConfig.pageAlignments).map(([k, v]) => [Number(k), v])));
+  >(
+    () =>
+      new Map(
+        Object.entries(initialConfig.pageAlignments).map(([k, v]) => [
+          Number(k),
+          v,
+        ]),
+      ),
+  );
 
   // Drag state for reordering
   const [reorderDragState, setReorderDragState] = useState<{
@@ -657,7 +667,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       );
 
       // Calculate this page's start X position
-      const pageStartX = pageIndex * (singlePageWidth + validMargin) + validMargin;
+      const pageStartX =
+        pageIndex * (singlePageWidth + validMargin) + validMargin;
 
       // Calculate right edge relative to this page's start
       const rightEdge = aspectDragState.originalX - pageStartX + newWidth;
@@ -1276,128 +1287,152 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
             return (
               <div key={page.pageNumber} className="relative">
                 {/* Page number and alignment controls */}
-                <div className="text-center mb-2 flex items-center justify-center gap-4">
-                  <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded">
-                    {pageLabel}
-                  </span>
-
-                  {/* Alignment buttons */}
-                  <div className="flex gap-1">
-                    {combinePages ? (
-                      <>
-                        {/* Left page alignment */}
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-gray-500">L:</span>
-                          <button
-                            onClick={() => {
-                              const leftPageNum = page.pageNumber * 2 - 1;
-                              const newAlignments = new Map(pageAlignments);
-                              newAlignments.set(leftPageNum, "left");
-                              setPageAlignments(newAlignments);
-                            }}
-                            className={`px-2 py-1 text-xs border rounded transition-colors ${
-                              (pageAlignments.get(page.pageNumber * 2 - 1) || "left") === "left"
-                                ? "bg-blue-500 text-white border-blue-500"
-                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                            }`}
-                            title="Align left page to left"
-                          >
-                            ⊣
-                          </button>
-                          <button
-                            onClick={() => {
-                              const leftPageNum = page.pageNumber * 2 - 1;
-                              const newAlignments = new Map(pageAlignments);
-                              newAlignments.set(leftPageNum, "right");
-                              setPageAlignments(newAlignments);
-                            }}
-                            className={`px-2 py-1 text-xs border rounded transition-colors ${
-                              (pageAlignments.get(page.pageNumber * 2 - 1) || "left") === "right"
-                                ? "bg-blue-500 text-white border-blue-500"
-                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                            }`}
-                            title="Align left page to right"
-                          >
-                            ⊢
-                          </button>
-                        </div>
-
-                        {/* Right page alignment (only if it exists) */}
-                        {page.pageNumber * 2 <= totalLogicalPages && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-500">R:</span>
-                            <button
-                              onClick={() => {
-                                const rightPageNum = page.pageNumber * 2;
-                                const newAlignments = new Map(pageAlignments);
-                                newAlignments.set(rightPageNum, "left");
-                                setPageAlignments(newAlignments);
-                              }}
-                              className={`px-2 py-1 text-xs border rounded transition-colors ${
-                                (pageAlignments.get(page.pageNumber * 2) || "left") === "left"
-                                  ? "bg-blue-500 text-white border-blue-500"
-                                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                              }`}
-                              title="Align right page to left"
-                            >
-                              ⊣
-                            </button>
-                            <button
-                              onClick={() => {
-                                const rightPageNum = page.pageNumber * 2;
-                                const newAlignments = new Map(pageAlignments);
-                                newAlignments.set(rightPageNum, "right");
-                                setPageAlignments(newAlignments);
-                              }}
-                              className={`px-2 py-1 text-xs border rounded transition-colors ${
-                                (pageAlignments.get(page.pageNumber * 2) || "left") === "right"
-                                  ? "bg-blue-500 text-white border-blue-500"
-                                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                              }`}
-                              title="Align right page to right"
-                            >
-                              ⊢
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      /* Single page alignment */
-                      <>
+                {combinePages ? (
+                  /* Combined pages mode - show controls above each logical page */
+                  <div
+                    className="mb-2 flex"
+                    style={{
+                      width: `${displayWidth}px`,
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                    }}
+                  >
+                    {/* Left page controls */}
+                    <div
+                      className="flex items-center justify-center gap-2"
+                      style={{ width: `${displayWidth / 2}px` }}
+                    >
+                      <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded">
+                        Page {page.pageNumber * 2 - 1} of {totalLogicalPages}
+                      </span>
+                      <div className="flex gap-1">
                         <button
                           onClick={() => {
+                            const leftPageNum = page.pageNumber * 2 - 1;
                             const newAlignments = new Map(pageAlignments);
-                            newAlignments.set(page.pageNumber, "left");
+                            newAlignments.set(leftPageNum, "left");
                             setPageAlignments(newAlignments);
                           }}
-                          className={`px-2 py-1 text-xs border rounded transition-colors ${
-                            (pageAlignments.get(page.pageNumber) || "left") === "left"
+                          className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                            (pageAlignments.get(page.pageNumber * 2 - 1) ||
+                              "left") === "left"
                               ? "bg-blue-500 text-white border-blue-500"
                               : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
                           }`}
                           title="Align to left"
                         >
-                          ⊣
+                          <Icon path={mdiFormatAlignLeft} size={0.6} />
                         </button>
                         <button
                           onClick={() => {
+                            const leftPageNum = page.pageNumber * 2 - 1;
                             const newAlignments = new Map(pageAlignments);
-                            newAlignments.set(page.pageNumber, "right");
+                            newAlignments.set(leftPageNum, "right");
                             setPageAlignments(newAlignments);
                           }}
-                          className={`px-2 py-1 text-xs border rounded transition-colors ${
-                            (pageAlignments.get(page.pageNumber) || "left") === "right"
+                          className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                            (pageAlignments.get(page.pageNumber * 2 - 1) ||
+                              "left") === "right"
                               ? "bg-blue-500 text-white border-blue-500"
                               : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
                           }`}
                           title="Align to right"
                         >
-                          ⊢
+                          <Icon path={mdiFormatAlignRight} size={0.6} />
                         </button>
-                      </>
+                      </div>
+                    </div>
+
+                    {/* Right page controls (only if it exists) */}
+                    {page.pageNumber * 2 <= totalLogicalPages && (
+                      <div
+                        className="flex items-center justify-center gap-2"
+                        style={{ width: `${displayWidth / 2}px` }}
+                      >
+                        <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded">
+                          Page {page.pageNumber * 2} of {totalLogicalPages}
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => {
+                              const rightPageNum = page.pageNumber * 2;
+                              const newAlignments = new Map(pageAlignments);
+                              newAlignments.set(rightPageNum, "left");
+                              setPageAlignments(newAlignments);
+                            }}
+                            className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                              (pageAlignments.get(page.pageNumber * 2) ||
+                                "left") === "left"
+                                ? "bg-blue-500 text-white border-blue-500"
+                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                            }`}
+                            title="Align to left"
+                          >
+                            <Icon path={mdiFormatAlignLeft} size={0.6} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const rightPageNum = page.pageNumber * 2;
+                              const newAlignments = new Map(pageAlignments);
+                              newAlignments.set(rightPageNum, "right");
+                              setPageAlignments(newAlignments);
+                            }}
+                            className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                              (pageAlignments.get(page.pageNumber * 2) ||
+                                "left") === "right"
+                                ? "bg-blue-500 text-white border-blue-500"
+                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                            }`}
+                            title="Align to right"
+                          >
+                            <Icon path={mdiFormatAlignRight} size={0.6} />
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
+                ) : (
+                  /* Single page mode - center everything */
+                  <div className="text-center mb-2 flex items-center justify-center gap-2">
+                    <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded">
+                      Page {page.pageNumber} of {totalLogicalPages}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => {
+                          const newAlignments = new Map(pageAlignments);
+                          newAlignments.set(page.pageNumber, "left");
+                          setPageAlignments(newAlignments);
+                        }}
+                        className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                          (pageAlignments.get(page.pageNumber) || "left") ===
+                          "left"
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                        }`}
+                        title="Align to left"
+                      >
+                        <Icon path={mdiFormatAlignLeft} size={0.6} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newAlignments = new Map(pageAlignments);
+                          newAlignments.set(page.pageNumber, "right");
+                          setPageAlignments(newAlignments);
+                        }}
+                        className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                          (pageAlignments.get(page.pageNumber) || "left") ===
+                          "right"
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                        }`}
+                        title="Align to right"
+                      >
+                        <Icon path={mdiFormatAlignRight} size={0.6} />
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Page container */}
                 <div
