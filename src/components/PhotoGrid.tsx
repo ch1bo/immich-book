@@ -14,12 +14,20 @@ import {
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
-import { calculatePageLayout, PAGE_SIZES, type PageAlignment } from "../utils/pageLayout";
+import {
+  calculatePageLayout,
+  PAGE_SIZES,
+  type PageAlignment,
+} from "../utils/pageLayout";
 import type { ImmichConfig } from "./ConnectionForm";
 import roboto400 from "@fontsource/roboto/files/roboto-latin-400-normal.woff?url";
 import roboto500 from "@fontsource/roboto/files/roboto-latin-500-normal.woff?url";
 import Icon from "@mdi/react";
-import { mdiFormatAlignLeft, mdiFormatAlignCenter, mdiFormatAlignRight } from "@mdi/js";
+import {
+  mdiFormatAlignLeft,
+  mdiFormatAlignCenter,
+  mdiFormatAlignRight,
+} from "@mdi/js";
 
 // Register Roboto font for PDF using local bundled files
 Font.register({
@@ -35,6 +43,8 @@ interface PhotoGridProps {
   album: AlbumResponseDto;
   onBack: () => void;
 }
+
+type Position = "bottom" | "top" | "left" | "right";
 
 interface GlobalConfig {
   // Page settings
@@ -59,7 +69,7 @@ interface AlbumConfig extends GlobalConfig {
   // Customizations (album-specific only)
   customAspectRatios: Record<string, number>;
   customOrdering: string[] | null;
-  descriptionPositions: Record<string, "bottom" | "top" | "left" | "right">;
+  descriptionPositions: Record<string, Position>;
   pageAlignments: Record<number, PageAlignment>;
 }
 
@@ -75,14 +85,6 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   filterVideos: true,
   showDates: true,
   showDescriptions: true,
-};
-
-const DEFAULT_ALBUM_CONFIG: AlbumConfig = {
-  ...DEFAULT_GLOBAL_CONFIG,
-  customAspectRatios: {},
-  customOrdering: null,
-  descriptionPositions: {},
-  pageAlignments: {},
 };
 
 // Helper functions for config persistence
@@ -185,8 +187,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    color: "white",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    color: "black",
     fontSize: 12,
     padding: 8,
     borderRadius: 2,
@@ -196,8 +198,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 8,
     right: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    color: "white",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    color: "black",
     fontSize: 12,
     padding: 8,
     borderRadius: 2,
@@ -208,8 +210,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    color: "white",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    color: "black",
     fontSize: 14,
     padding: 8,
     fontFamily: "Roboto",
@@ -219,8 +221,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    color: "white",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    color: "black",
     fontSize: 14,
     padding: 8,
     fontFamily: "Roboto",
@@ -258,10 +260,10 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const initialConfig = useMemo(() => loadAlbumConfig(album.id), [album.id]);
 
   // Page settings
-  const [pageSize, setPageSize] = useState<"A4" | "LETTER" | "A3" | "CUSTOM">(
+  const [pageSize, _setPageSize] = useState<"A4" | "LETTER" | "A3" | "CUSTOM">(
     initialConfig.pageSize,
   );
-  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+  const [orientation, _setOrientation] = useState<"portrait" | "landscape">(
     initialConfig.orientation,
   );
   const [pageWidth, setPageWidth] = useState(initialConfig.pageWidth);
@@ -312,7 +314,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     initialConfig.customOrdering,
   );
   const [descriptionPositions, setDescriptionPositions] = useState<
-    Map<string, "bottom" | "top" | "left" | "right">
+    Map<string, Position>
   >(() => new Map(Object.entries(initialConfig.descriptionPositions)));
   const [pageAlignments, setPageAlignments] = useState<
     Map<number, PageAlignment>
@@ -534,7 +536,8 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     event.preventDefault();
     event.stopPropagation();
 
-    const positions: DescriptionPosition[] = ["bottom", "top", "left", "right"];
+    // TODO: how to ensure these are all positions?
+    const positions: Position[] = ["bottom", "top", "left", "right"];
     const currentPosition = descriptionPositions.get(assetId) || "bottom";
     const currentIndex = positions.indexOf(currentPosition);
     const nextPosition = positions[(currentIndex + 1) % positions.length];
@@ -1139,7 +1142,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                   fontFamily: "Roboto",
                                 }}
                               >
-                                {photoBox.asset.exifInfo.description}
+                                {photoBox.asset.exifInfo?.description}
                               </Text>
                             </View>
                           )}
@@ -1183,7 +1186,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                   fontFamily: "Roboto",
                                 }}
                               >
-                                {photoBox.asset.exifInfo.description}
+                                {photoBox.asset.exifInfo?.description}
                               </Text>
                             </View>
                           )}
@@ -1247,7 +1250,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                     : styles.descriptionBottom
                                 }
                               >
-                                {photoBox.asset.exifInfo.description}
+                                {photoBox.asset.exifInfo?.description}
                               </Text>
                             )}
                         </View>
@@ -1266,23 +1269,6 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
             // Scale down to match PDF dimensions (72 DPI from 300 DPI)
             const displayWidth = toPoints(page.width);
             const displayHeight = toPoints(page.height);
-
-            // Calculate page numbers for display
-            let pageLabel: string;
-            if (combinePages) {
-              const leftPageNum = page.pageNumber * 2 - 1;
-              const rightPageNum = page.pageNumber * 2;
-
-              // Check if this combined page contains two logical pages or just one
-              if (rightPageNum <= totalLogicalPages) {
-                pageLabel = `Page ${leftPageNum}/${rightPageNum} of ${totalLogicalPages}`;
-              } else {
-                // Last page with odd number of logical pages
-                pageLabel = `Page ${leftPageNum} of ${totalLogicalPages}`;
-              }
-            } else {
-              pageLabel = `Page ${page.pageNumber} of ${totalLogicalPages}`;
-            }
 
             return (
               <div key={page.pageNumber} className="relative">
@@ -1594,7 +1580,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             }
                             title="Click to change position"
                           >
-                            {photoBox.asset.exifInfo.description}
+                            {photoBox.asset.exifInfo?.description}
                           </div>
                         )}
 
@@ -1617,13 +1603,13 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                 case "bottom":
                                   return {
                                     className:
-                                      "absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm",
+                                      "absolute top-2 right-2 p-2 bg-white/40 text-black text-xs rounded backdrop-blur-sm",
                                     style: {},
                                   };
                                 case "top":
                                   return {
                                     className:
-                                      "absolute bottom-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm",
+                                      "absolute bottom-2 right-2 p-2 bg-white/40 text-black text-xs rounded backdrop-blur-sm",
                                     style: {},
                                   };
                                 case "left":
@@ -1641,7 +1627,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                 default:
                                   return {
                                     className:
-                                      "absolute top-2 right-2 p-2 bg-black/50 text-white text-xs rounded backdrop-blur-sm",
+                                      "absolute top-2 right-2 p-2 bg-white/40 text-black text-xs rounded backdrop-blur-sm",
                                     style: {},
                                   };
                               }
@@ -1669,7 +1655,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               descriptionPositions.get(photoBox.asset.id) ||
                               "bottom";
                             const description =
-                              photoBox.asset.exifInfo.description;
+                              photoBox.asset.exifInfo?.description;
 
                             if (
                               descPosition === "left" ||
@@ -1684,14 +1670,14 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                 case "top":
                                   return {
                                     className:
-                                      "absolute top-0 left-0 right-0 bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors z-10",
+                                      "absolute top-0 left-0 right-0 bg-white/40 text-black text-sm p-2 cursor-pointer hover:bg-white/80 transition-colors z-10",
                                     style: {},
                                   };
                                 case "bottom":
                                 default:
                                   return {
                                     className:
-                                      "absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm p-2 cursor-pointer hover:bg-black/70 transition-colors z-10",
+                                      "absolute bottom-0 left-0 right-0 bg-white/40 text-black text-sm p-2 cursor-pointer hover:bg-white/80 transition-colors z-10",
                                     style: {},
                                   };
                               }
@@ -1723,7 +1709,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             }
                             title="Click to change position"
                           >
-                            {photoBox.asset.exifInfo.description}
+                            {photoBox.asset.exifInfo?.description}
                           </div>
                         )}
 
