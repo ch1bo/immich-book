@@ -477,17 +477,6 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     });
   };
 
-  // Reset aspect ratio for a specific asset
-  const handleResetAspectRatio = (assetId: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setCustomAspectRatios((prev) => {
-      const next = new Map(prev);
-      next.delete(assetId);
-      return next;
-    });
-  };
-
   // Reset all aspect ratio customizations
   const handleResetAllCustomizations = () => {
     setCustomAspectRatios(new Map());
@@ -554,8 +543,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     event.preventDefault();
     event.stopPropagation();
 
-    // TODO: how to ensure these are all positions?
-    const positions: Position[] = ["bottom", "top", "left", "right"];
+    // Find the asset to check if it has a description
+    const asset = filteredAssets.find((a) => a.id === assetId);
+    const hasDescription = !!asset?.exifInfo?.description;
+
+    // Build the cycle based on whether there's a description
+    const positions: Position[] = hasDescription
+      ? ["bottom", "top", "left", "right"]
+      : ["bottom", "top"];
+
     const currentPosition = descriptionPositions.get(assetId) || "bottom";
     const currentIndex = positions.indexOf(currentPosition);
     const nextPosition = positions[(currentIndex + 1) % positions.length];
@@ -612,7 +608,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     const adjustedAspectRatios = new Map(customAspectRatios);
 
     filteredAssets.forEach((asset) => {
-      const descPosition = descriptionPositions.get(asset.id);
+      const descPosition = descriptionPositions.get(asset.id) || "bottom";
       const hasDescription = showDescriptions && !!asset.exifInfo?.description;
 
       if (
@@ -1528,9 +1524,14 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     const aspectRatio =
                       customAspectRatios.get(photoBox.asset.id) ||
                       currentAspectRatio;
-                    const isCustomized = customAspectRatios.has(
+                    const hasAspectRatioCustomization = customAspectRatios.has(
                       photoBox.asset.id,
                     );
+                    const hasDescriptionPositionCustomization =
+                      descriptionPositions.has(photoBox.asset.id);
+                    const isCustomized =
+                      hasAspectRatioCustomization ||
+                      hasDescriptionPositionCustomization;
 
                     // Find global index in filtered assets for drag & drop
                     const globalIndex = filteredAssets.findIndex(
@@ -1653,12 +1654,13 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                 case "left":
                                   return {
                                     className:
-                                      "absolute top-4 left-2 text-black",
+                                      "absolute top-4 left-2 text-black cursor-pointer",
                                     style: commonStyle,
                                   };
                                 case "right":
                                   return {
-                                    className: "absolute top-4 text-black",
+                                    className:
+                                      "absolute top-4 text-black cursor-pointer",
                                     style: {
                                       ...commonStyle,
                                       left: `${imageWidth + 8}px`,
@@ -1667,7 +1669,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                 default:
                                   return {
                                     className:
-                                      "absolute top-2 right-2 bg-white/70 text-black backdrop-blur-sm",
+                                      "absolute top-2 right-2 bg-white/70 text-black backdrop-blur-sm cursor-pointer hover:bg-white/80 transition-colors",
                                     style: commonStyle,
                                   };
                               }
@@ -1677,6 +1679,10 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               <div
                                 className={config.className}
                                 style={config.style}
+                                onClick={(e) =>
+                                  handleDescriptionClick(photoBox.asset.id, e)
+                                }
+                                title="Click to change position"
                               >
                                 {new Date(
                                   photoBox.asset.fileCreatedAt,
@@ -1717,7 +1723,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                 case "top":
                                   return {
                                     className:
-                                      "absolute top-0 left-0 right-0 bg-white/70 text-black cursor-pointer hover:bg-white/80 transition-colors z-10",
+                                      "absolute top-0 left-0 right-0 bg-white/70 text-black cursor-pointer hover:bg-white/80 transition-colors z-10 p-[8px]",
                                     style: commonStyle,
                                   };
                                 case "bottom":
@@ -1769,27 +1775,68 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         )}
 
                         {/* Customization indicators */}
-                        {isCustomized && (
+                        {hasAspectRatioCustomization && (
                           <div
                             className="absolute top-2 left-2 w-2 h-2 bg-blue-500 rounded-full shadow-lg"
                             title="Aspect ratio customized"
                           />
                         )}
+                        {hasDescriptionPositionCustomization && (
+                          <div
+                            className="absolute top-2 left-5 w-2 h-2 bg-purple-500 rounded-full shadow-lg"
+                            title="Label position customized"
+                          />
+                        )}
                         {isReordered && (
                           <div
-                            className="absolute top-2 left-5 w-2 h-2 bg-green-500 rounded-full shadow-lg"
+                            className="absolute top-2 left-8 w-2 h-2 bg-green-500 rounded-full shadow-lg"
                             title="Image reordered"
                           />
                         )}
 
                         {/* Reset button - shown on hover for customized images */}
-                        {isCustomized && (
+                        {(isCustomized || isReordered) && (
                           <div
                             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded shadow-lg text-xs font-medium"
-                            onClick={(e) =>
-                              handleResetAspectRatio(photoBox.asset.id, e)
-                            }
-                            title="Reset aspect ratio"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              // Reset aspect ratio
+                              if (hasAspectRatioCustomization) {
+                                setCustomAspectRatios((prev) => {
+                                  const next = new Map(prev);
+                                  next.delete(photoBox.asset.id);
+                                  return next;
+                                });
+                              }
+                              // Reset description position
+                              if (hasDescriptionPositionCustomization) {
+                                setDescriptionPositions((prev) => {
+                                  const next = new Map(prev);
+                                  next.delete(photoBox.asset.id);
+                                  return next;
+                                });
+                              }
+                              // Reset custom ordering by rebuilding the array without this asset
+                              // This moves the asset back to its default position
+                              if (isReordered && customOrdering) {
+                                const assetId = photoBox.asset.id;
+                                const defaultIndex = defaultFilteredAssets.findIndex(
+                                  (a) => a.id === assetId,
+                                );
+
+                                // Remove asset from custom ordering
+                                const newOrdering = customOrdering.filter(
+                                  (id) => id !== assetId,
+                                );
+
+                                // Insert it back at its default position
+                                newOrdering.splice(defaultIndex, 0, assetId);
+
+                                setCustomOrdering(newOrdering);
+                              }
+                            }}
+                            title="Reset all customizations"
                           >
                             Reset
                           </div>
