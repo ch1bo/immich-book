@@ -15,6 +15,8 @@ export interface PhotoBox {
   height: number;
 }
 
+export type PageAlignment = "left" | "right";
+
 export interface Page {
   pageNumber: number;
   photos: PhotoBox[];
@@ -63,6 +65,7 @@ export interface LayoutOptions {
   customHeight?: number; // in pixels
   combinePages?: boolean; // combine two pages into one PDF page
   customAspectRatios?: Map<string, number>; // custom aspect ratios per asset ID
+  pageAlignments?: Map<number, PageAlignment>; // alignment per page number
 }
 
 /**
@@ -84,6 +87,7 @@ export function calculatePageLayout(
     customWidth,
     customHeight,
     customAspectRatios,
+    pageAlignments,
   } = options;
 
   // Determine page dimensions in pixels
@@ -175,6 +179,29 @@ export function calculatePageLayout(
   // Add the last page
   if (currentPage.photos.length > 0) {
     pages.push(currentPage);
+  }
+
+  // Apply page alignments (before combining pages)
+  if (pageAlignments) {
+    for (const page of pages) {
+      const alignment = pageAlignments.get(page.pageNumber) || "left";
+
+      if (alignment === "right" && page.photos.length > 0) {
+        // Find the rightmost edge of all photos on this page
+        const maxRightEdge = Math.max(
+          ...page.photos.map((photo) => photo.x + photo.width)
+        );
+
+        // Calculate shift needed to align right edge to content area
+        const rightEdge = margin + contentWidth;
+        const shift = rightEdge - maxRightEdge;
+
+        // Apply shift to all photos on this page
+        for (const photo of page.photos) {
+          photo.x += shift;
+        }
+      }
+    }
   }
 
   // Combine pages if requested

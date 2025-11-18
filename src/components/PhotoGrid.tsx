@@ -58,6 +58,7 @@ interface AlbumConfig extends GlobalConfig {
   customAspectRatios: Record<string, number>;
   customOrdering: string[] | null;
   descriptionPositions: Record<string, "bottom" | "top" | "left" | "right">;
+  pageAlignments: Record<number, "left" | "right">;
 }
 
 const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
@@ -79,6 +80,7 @@ const DEFAULT_ALBUM_CONFIG: AlbumConfig = {
   customAspectRatios: {},
   customOrdering: null,
   descriptionPositions: {},
+  pageAlignments: {},
 };
 
 // Helper functions for config persistence
@@ -114,6 +116,7 @@ function loadAlbumConfig(albumId: string): AlbumConfig {
         customAspectRatios: {},
         customOrdering: null,
         descriptionPositions: {},
+        pageAlignments: {},
         ...albumSpecific,
       };
     }
@@ -126,6 +129,7 @@ function loadAlbumConfig(albumId: string): AlbumConfig {
     customAspectRatios: {},
     customOrdering: null,
     descriptionPositions: {},
+    pageAlignments: {},
   };
 }
 
@@ -308,6 +312,9 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [descriptionPositions, setDescriptionPositions] = useState<
     Map<string, "bottom" | "top" | "left" | "right">
   >(() => new Map(Object.entries(initialConfig.descriptionPositions)));
+  const [pageAlignments, setPageAlignments] = useState<
+    Map<number, "left" | "right">
+  >(() => new Map(Object.entries(initialConfig.pageAlignments).map(([k, v]) => [Number(k), v])));
 
   // Drag state for reordering
   const [reorderDragState, setReorderDragState] = useState<{
@@ -372,6 +379,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       customAspectRatios: Object.fromEntries(customAspectRatios),
       customOrdering,
       descriptionPositions: Object.fromEntries(descriptionPositions),
+      pageAlignments: Object.fromEntries(pageAlignments),
     };
     saveAlbumConfig(album.id, config);
   }, [
@@ -390,6 +398,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     customAspectRatios,
     customOrdering,
     descriptionPositions,
+    pageAlignments,
     isPageWidthValid,
     isPageHeightValid,
     isMarginValid,
@@ -607,6 +616,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       customHeight: validPageHeight,
       combinePages,
       customAspectRatios: adjustedAspectRatios,
+      pageAlignments,
     });
   }, [
     filteredAssets,
@@ -619,6 +629,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     customAspectRatios,
     descriptionPositions,
     showDescriptions,
+    pageAlignments,
   ]);
 
   // Handle aspect ratio drag
@@ -1264,11 +1275,128 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
             return (
               <div key={page.pageNumber} className="relative">
-                {/* Page number */}
-                <div className="text-center mb-2">
+                {/* Page number and alignment controls */}
+                <div className="text-center mb-2 flex items-center justify-center gap-4">
                   <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded">
                     {pageLabel}
                   </span>
+
+                  {/* Alignment buttons */}
+                  <div className="flex gap-1">
+                    {combinePages ? (
+                      <>
+                        {/* Left page alignment */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-gray-500">L:</span>
+                          <button
+                            onClick={() => {
+                              const leftPageNum = page.pageNumber * 2 - 1;
+                              const newAlignments = new Map(pageAlignments);
+                              newAlignments.set(leftPageNum, "left");
+                              setPageAlignments(newAlignments);
+                            }}
+                            className={`px-2 py-1 text-xs border rounded transition-colors ${
+                              (pageAlignments.get(page.pageNumber * 2 - 1) || "left") === "left"
+                                ? "bg-blue-500 text-white border-blue-500"
+                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                            }`}
+                            title="Align left page to left"
+                          >
+                            ⊣
+                          </button>
+                          <button
+                            onClick={() => {
+                              const leftPageNum = page.pageNumber * 2 - 1;
+                              const newAlignments = new Map(pageAlignments);
+                              newAlignments.set(leftPageNum, "right");
+                              setPageAlignments(newAlignments);
+                            }}
+                            className={`px-2 py-1 text-xs border rounded transition-colors ${
+                              (pageAlignments.get(page.pageNumber * 2 - 1) || "left") === "right"
+                                ? "bg-blue-500 text-white border-blue-500"
+                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                            }`}
+                            title="Align left page to right"
+                          >
+                            ⊢
+                          </button>
+                        </div>
+
+                        {/* Right page alignment (only if it exists) */}
+                        {page.pageNumber * 2 <= totalLogicalPages && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">R:</span>
+                            <button
+                              onClick={() => {
+                                const rightPageNum = page.pageNumber * 2;
+                                const newAlignments = new Map(pageAlignments);
+                                newAlignments.set(rightPageNum, "left");
+                                setPageAlignments(newAlignments);
+                              }}
+                              className={`px-2 py-1 text-xs border rounded transition-colors ${
+                                (pageAlignments.get(page.pageNumber * 2) || "left") === "left"
+                                  ? "bg-blue-500 text-white border-blue-500"
+                                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                              }`}
+                              title="Align right page to left"
+                            >
+                              ⊣
+                            </button>
+                            <button
+                              onClick={() => {
+                                const rightPageNum = page.pageNumber * 2;
+                                const newAlignments = new Map(pageAlignments);
+                                newAlignments.set(rightPageNum, "right");
+                                setPageAlignments(newAlignments);
+                              }}
+                              className={`px-2 py-1 text-xs border rounded transition-colors ${
+                                (pageAlignments.get(page.pageNumber * 2) || "left") === "right"
+                                  ? "bg-blue-500 text-white border-blue-500"
+                                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                              }`}
+                              title="Align right page to right"
+                            >
+                              ⊢
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Single page alignment */
+                      <>
+                        <button
+                          onClick={() => {
+                            const newAlignments = new Map(pageAlignments);
+                            newAlignments.set(page.pageNumber, "left");
+                            setPageAlignments(newAlignments);
+                          }}
+                          className={`px-2 py-1 text-xs border rounded transition-colors ${
+                            (pageAlignments.get(page.pageNumber) || "left") === "left"
+                              ? "bg-blue-500 text-white border-blue-500"
+                              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                          }`}
+                          title="Align to left"
+                        >
+                          ⊣
+                        </button>
+                        <button
+                          onClick={() => {
+                            const newAlignments = new Map(pageAlignments);
+                            newAlignments.set(page.pageNumber, "right");
+                            setPageAlignments(newAlignments);
+                          }}
+                          className={`px-2 py-1 text-xs border rounded transition-colors ${
+                            (pageAlignments.get(page.pageNumber) || "left") === "right"
+                              ? "bg-blue-500 text-white border-blue-500"
+                              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                          }`}
+                          title="Align to right"
+                        >
+                          ⊢
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Page container */}
