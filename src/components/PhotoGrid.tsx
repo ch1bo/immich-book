@@ -191,8 +191,10 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 12,
     padding: 8,
-    borderRadius: 2,
+    borderRadius: 4,
     fontFamily: "Roboto",
+    lineHeight: 1.5,
+    letterSpacing: 0.2,
   },
   dateOverlayBottomRight: {
     position: "absolute",
@@ -202,8 +204,10 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 12,
     padding: 8,
-    borderRadius: 2,
+    borderRadius: 4,
     fontFamily: "Roboto",
+    lineHeight: 1.5,
+    letterSpacing: 0.2,
   },
   descriptionBottom: {
     position: "absolute",
@@ -215,6 +219,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     padding: 8,
     fontFamily: "Roboto",
+    lineHeight: 1.5,
+    letterSpacing: 0.2,
   },
   descriptionTop: {
     position: "absolute",
@@ -226,6 +232,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     padding: 8,
     fontFamily: "Roboto",
+    lineHeight: 1.5,
+    letterSpacing: 0.2,
   },
   descriptionLeft: {
     fontSize: 14,
@@ -234,6 +242,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F3F4F6",
     fontFamily: "Roboto",
+    lineHeight: 1.5,
+    letterSpacing: 0.2,
   },
   descriptionRight: {
     fontSize: 14,
@@ -242,6 +252,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#F3F4F6",
     fontFamily: "Roboto",
+    lineHeight: 1.5,
+    letterSpacing: 0.2,
   },
   photoContainerFlex: {
     position: "absolute",
@@ -1136,10 +1148,13 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               ]}
                             >
                               <Text
+                                hyphenate={false}
                                 style={{
                                   color: "black",
                                   fontSize: 14,
                                   fontFamily: "Roboto",
+                                  lineHeight: 1.5,
+                                  letterSpacing: 0.2,
                                 }}
                               >
                                 {photoBox.asset.exifInfo?.description}
@@ -1180,10 +1195,13 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               ]}
                             >
                               <Text
+                                hyphenate={false}
                                 style={{
                                   color: "black",
                                   fontSize: 14,
                                   fontFamily: "Roboto",
+                                  lineHeight: 1.5,
+                                  letterSpacing: 0.2,
                                 }}
                               >
                                 {photoBox.asset.exifInfo?.description}
@@ -1218,14 +1236,13 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               })()}
                             >
                               <Text
+                                hyphenate={false}
                                 style={{
-                                  color:
-                                    descPosition === "left" ||
-                                    descPosition === "right"
-                                      ? "black"
-                                      : "white",
+                                  color: "black",
                                   fontSize: 12,
                                   fontFamily: "Roboto",
+                                  lineHeight: 1.5,
+                                  letterSpacing: 0.2,
                                 }}
                               >
                                 {new Date(
@@ -1244,6 +1261,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             (descPosition === "top" ||
                               descPosition === "bottom") && (
                               <Text
+                                hyphenate={false}
                                 style={
                                   descPosition === "top"
                                     ? styles.descriptionTop
@@ -1573,8 +1591,16 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         {/* Description on left (when position is 'left') */}
                         {hasDescription && descPosition === "left" && (
                           <div
-                            className="text-black text-sm p-2 cursor-pointer bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
-                            style={{ width: `${imageWidth}px`, flexShrink: 0 }}
+                            className="text-black cursor-pointer bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                            style={{
+                              width: `${imageWidth}px`,
+                              flexShrink: 0,
+                              hyphens: 'none',
+                              wordWrap: 'break-word',
+                              fontSize: '14px',
+                              padding: '8px',
+                              lineHeight: 1.5,
+                            }}
                             onClick={(e) =>
                               handleDescriptionClick(photoBox.asset.id, e)
                             }
@@ -1599,36 +1625,37 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                           photoBox.asset.fileCreatedAt &&
                           (() => {
                             const getDateConfig = () => {
+                              const commonStyle = { hyphens: 'none' as const, wordWrap: 'break-word' as const, fontSize: '12px', padding: '8px', borderRadius: '4px', lineHeight: 1.5 };
                               switch (descPosition) {
                                 case "bottom":
                                   return {
                                     className:
-                                      "absolute top-2 right-2 p-2 bg-white/40 text-black text-xs rounded backdrop-blur-sm",
-                                    style: {},
+                                      "absolute top-2 right-2 bg-white/40 text-black backdrop-blur-sm",
+                                    style: commonStyle,
                                   };
                                 case "top":
                                   return {
                                     className:
-                                      "absolute bottom-2 right-2 p-2 bg-white/40 text-black text-xs rounded backdrop-blur-sm",
-                                    style: {},
+                                      "absolute bottom-2 right-2 bg-white/40 text-black backdrop-blur-sm",
+                                    style: commonStyle,
                                   };
                                 case "left":
                                   return {
                                     className:
-                                      "absolute top-4 left-2 text-black text-xs",
-                                    style: {},
+                                      "absolute top-4 left-2 text-black",
+                                    style: commonStyle,
                                   };
                                 case "right":
                                   return {
                                     className:
-                                      "absolute top-4 text-black text-xs",
-                                    style: { left: `${imageWidth + 8}px` },
+                                      "absolute top-4 text-black",
+                                    style: { ...commonStyle, left: `${imageWidth + 8}px` },
                                   };
                                 default:
                                   return {
                                     className:
-                                      "absolute top-2 right-2 p-2 bg-white/40 text-black text-xs rounded backdrop-blur-sm",
-                                    style: {},
+                                      "absolute top-2 right-2 bg-white/40 text-black backdrop-blur-sm",
+                                    style: commonStyle,
                                   };
                               }
                             };
@@ -1666,19 +1693,20 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             }
 
                             const getDescriptionConfig = () => {
+                              const commonStyle = { hyphens: 'none' as const, wordWrap: 'break-word' as const, fontSize: '14px', padding: '8px', lineHeight: 1.5 };
                               switch (descPosition) {
                                 case "top":
                                   return {
                                     className:
-                                      "absolute top-0 left-0 right-0 bg-white/40 text-black text-sm p-2 cursor-pointer hover:bg-white/80 transition-colors z-10",
-                                    style: {},
+                                      "absolute top-0 left-0 right-0 bg-white/40 text-black cursor-pointer hover:bg-white/80 transition-colors z-10",
+                                    style: commonStyle,
                                   };
                                 case "bottom":
                                 default:
                                   return {
                                     className:
-                                      "absolute bottom-0 left-0 right-0 bg-white/40 text-black text-sm p-2 cursor-pointer hover:bg-white/80 transition-colors z-10",
-                                    style: {},
+                                      "absolute bottom-0 left-0 right-0 bg-white/40 text-black cursor-pointer hover:bg-white/80 transition-colors z-10",
+                                    style: commonStyle,
                                   };
                               }
                             };
@@ -1702,8 +1730,16 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         {/* Description on right (when position is 'right') */}
                         {hasDescription && descPosition === "right" && (
                           <div
-                            className="text-black text-sm p-2 cursor-pointer bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
-                            style={{ width: `${imageWidth}px`, flexShrink: 0 }}
+                            className="text-black cursor-pointer bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                            style={{
+                              width: `${imageWidth}px`,
+                              flexShrink: 0,
+                              hyphens: 'none',
+                              wordWrap: 'break-word',
+                              fontSize: '14px',
+                              padding: '8px',
+                              lineHeight: 1.5,
+                            }}
                             onClick={(e) =>
                               handleDescriptionClick(photoBox.asset.id, e)
                             }
