@@ -181,34 +181,56 @@ export function calculatePageLayout(
     pages.push(currentPage);
   }
 
-  // Apply page alignments (before combining pages)
+  // Apply page alignments per row (before combining pages)
   if (pageAlignments) {
     for (const page of pages) {
       const alignment = pageAlignments.get(page.pageNumber) || "left";
 
       if (page.photos.length > 0 && alignment !== "left") {
-        // Find the leftmost and rightmost edges of all photos on this page
-        const minLeftEdge = Math.min(...page.photos.map((photo) => photo.x));
-        const maxRightEdge = Math.max(
-          ...page.photos.map((photo) => photo.x + photo.width)
-        );
+        // Group photos by row (photos with same Y position, allowing small tolerance)
+        const rows: PhotoBox[][] = [];
+        const tolerance = 1; // 1 pixel tolerance for grouping rows
 
-        let shift = 0;
-        if (alignment === "right") {
-          // Calculate shift needed to align right edge to content area
-          const rightEdge = margin + contentWidth;
-          shift = rightEdge - maxRightEdge;
-        } else if (alignment === "center") {
-          // Calculate shift needed to center the content
-          const usedWidth = maxRightEdge - minLeftEdge;
-          const availableSpace = contentWidth - usedWidth;
-          const targetLeftEdge = margin + availableSpace / 2;
-          shift = targetLeftEdge - minLeftEdge;
+        for (const photo of page.photos) {
+          // Find existing row with matching Y position
+          let foundRow = false;
+          for (const row of rows) {
+            if (Math.abs(row[0].y - photo.y) <= tolerance) {
+              row.push(photo);
+              foundRow = true;
+              break;
+            }
+          }
+          // Create new row if no matching row found
+          if (!foundRow) {
+            rows.push([photo]);
+          }
         }
 
-        // Apply shift to all photos on this page
-        for (const photo of page.photos) {
-          photo.x += shift;
+        // Apply alignment to each row independently
+        for (const row of rows) {
+          const minLeftEdge = Math.min(...row.map((photo) => photo.x));
+          const maxRightEdge = Math.max(
+            ...row.map((photo) => photo.x + photo.width)
+          );
+
+          let shift = 0;
+          if (alignment === "right") {
+            // Calculate shift needed to align right edge to content area
+            const rightEdge = margin + contentWidth;
+            shift = rightEdge - maxRightEdge;
+          } else if (alignment === "center") {
+            // Calculate shift needed to center the content
+            const usedWidth = maxRightEdge - minLeftEdge;
+            const availableSpace = contentWidth - usedWidth;
+            const targetLeftEdge = margin + availableSpace / 2;
+            shift = targetLeftEdge - minLeftEdge;
+          }
+
+          // Apply shift to all photos in this row
+          for (const photo of row) {
+            photo.x += shift;
+          }
         }
       }
     }
