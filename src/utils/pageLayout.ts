@@ -15,7 +15,7 @@ export interface PhotoBox {
   height: number;
 }
 
-export type PageAlignment = "left" | "right";
+export type PageAlignment = "left" | "center" | "right";
 
 export interface Page {
   pageNumber: number;
@@ -186,15 +186,25 @@ export function calculatePageLayout(
     for (const page of pages) {
       const alignment = pageAlignments.get(page.pageNumber) || "left";
 
-      if (alignment === "right" && page.photos.length > 0) {
-        // Find the rightmost edge of all photos on this page
+      if (page.photos.length > 0 && alignment !== "left") {
+        // Find the leftmost and rightmost edges of all photos on this page
+        const minLeftEdge = Math.min(...page.photos.map((photo) => photo.x));
         const maxRightEdge = Math.max(
           ...page.photos.map((photo) => photo.x + photo.width)
         );
 
-        // Calculate shift needed to align right edge to content area
-        const rightEdge = margin + contentWidth;
-        const shift = rightEdge - maxRightEdge;
+        let shift = 0;
+        if (alignment === "right") {
+          // Calculate shift needed to align right edge to content area
+          const rightEdge = margin + contentWidth;
+          shift = rightEdge - maxRightEdge;
+        } else if (alignment === "center") {
+          // Calculate shift needed to center the content
+          const usedWidth = maxRightEdge - minLeftEdge;
+          const availableSpace = contentWidth - usedWidth;
+          const targetLeftEdge = margin + availableSpace / 2;
+          shift = targetLeftEdge - minLeftEdge;
+        }
 
         // Apply shift to all photos on this page
         for (const photo of page.photos) {

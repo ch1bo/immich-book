@@ -14,12 +14,12 @@ import {
   StyleSheet,
   Font,
 } from "@react-pdf/renderer";
-import { calculatePageLayout, PAGE_SIZES } from "../utils/pageLayout";
+import { calculatePageLayout, PAGE_SIZES, type PageAlignment } from "../utils/pageLayout";
 import type { ImmichConfig } from "./ConnectionForm";
 import roboto400 from "@fontsource/roboto/files/roboto-latin-400-normal.woff?url";
 import roboto500 from "@fontsource/roboto/files/roboto-latin-500-normal.woff?url";
 import Icon from "@mdi/react";
-import { mdiFormatAlignLeft, mdiFormatAlignRight } from "@mdi/js";
+import { mdiFormatAlignLeft, mdiFormatAlignCenter, mdiFormatAlignRight } from "@mdi/js";
 
 // Register Roboto font for PDF using local bundled files
 Font.register({
@@ -60,7 +60,7 @@ interface AlbumConfig extends GlobalConfig {
   customAspectRatios: Record<string, number>;
   customOrdering: string[] | null;
   descriptionPositions: Record<string, "bottom" | "top" | "left" | "right">;
-  pageAlignments: Record<number, "left" | "right">;
+  pageAlignments: Record<number, PageAlignment>;
 }
 
 const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
@@ -315,7 +315,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     Map<string, "bottom" | "top" | "left" | "right">
   >(() => new Map(Object.entries(initialConfig.descriptionPositions)));
   const [pageAlignments, setPageAlignments] = useState<
-    Map<number, "left" | "right">
+    Map<number, PageAlignment>
   >(
     () =>
       new Map(
@@ -1327,6 +1327,23 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                           onClick={() => {
                             const leftPageNum = page.pageNumber * 2 - 1;
                             const newAlignments = new Map(pageAlignments);
+                            newAlignments.set(leftPageNum, "center");
+                            setPageAlignments(newAlignments);
+                          }}
+                          className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                            (pageAlignments.get(page.pageNumber * 2 - 1) ||
+                              "left") === "center"
+                              ? "bg-blue-500 text-white border-blue-500"
+                              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                          }`}
+                          title="Align to center"
+                        >
+                          <Icon path={mdiFormatAlignCenter} size={0.6} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const leftPageNum = page.pageNumber * 2 - 1;
+                            const newAlignments = new Map(pageAlignments);
                             newAlignments.set(leftPageNum, "right");
                             setPageAlignments(newAlignments);
                           }}
@@ -1374,6 +1391,23 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             onClick={() => {
                               const rightPageNum = page.pageNumber * 2;
                               const newAlignments = new Map(pageAlignments);
+                              newAlignments.set(rightPageNum, "center");
+                              setPageAlignments(newAlignments);
+                            }}
+                            className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                              (pageAlignments.get(page.pageNumber * 2) ||
+                                "left") === "center"
+                                ? "bg-blue-500 text-white border-blue-500"
+                                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                            }`}
+                            title="Align to center"
+                          >
+                            <Icon path={mdiFormatAlignCenter} size={0.6} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const rightPageNum = page.pageNumber * 2;
+                              const newAlignments = new Map(pageAlignments);
                               newAlignments.set(rightPageNum, "right");
                               setPageAlignments(newAlignments);
                             }}
@@ -1413,6 +1447,22 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                         title="Align to left"
                       >
                         <Icon path={mdiFormatAlignLeft} size={0.6} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newAlignments = new Map(pageAlignments);
+                          newAlignments.set(page.pageNumber, "center");
+                          setPageAlignments(newAlignments);
+                        }}
+                        className={`px-2 py-1 text-xs border rounded transition-colors flex items-center ${
+                          (pageAlignments.get(page.pageNumber) || "left") ===
+                          "center"
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                        }`}
+                        title="Align to center"
+                      >
+                        <Icon path={mdiFormatAlignCenter} size={0.6} />
                       </button>
                       <button
                         onClick={() => {
