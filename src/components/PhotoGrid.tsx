@@ -63,6 +63,7 @@ interface GlobalConfig {
   // Display settings
   showDates: boolean;
   showDescriptions: boolean;
+  fontSize: number;
 }
 
 interface AlbumConfig extends GlobalConfig {
@@ -85,6 +86,7 @@ const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   filterVideos: true,
   showDates: true,
   showDescriptions: true,
+  fontSize: 12,
 };
 
 // Helper functions for config persistence
@@ -157,6 +159,7 @@ function saveAlbumConfig(albumId: string, config: AlbumConfig) {
       filterVideos: config.filterVideos,
       showDates: config.showDates,
       showDescriptions: config.showDescriptions,
+      fontSize: config.fontSize,
     };
     saveGlobalConfig(globalConfig);
   } catch (e) {
@@ -170,8 +173,8 @@ function saveAlbumConfig(albumId: string, config: AlbumConfig) {
 // Conversion: points = pixels * (72/300)
 const toPoints = (pixels: number) => pixels * (72 / 300);
 
-// Create styles for the PDF
-const styles = StyleSheet.create({
+// Static styles for the PDF
+const staticStyles = StyleSheet.create({
   page: {
     backgroundColor: "white",
   },
@@ -183,90 +186,76 @@ const styles = StyleSheet.create({
     height: "100%",
     objectFit: "cover",
   },
-  dateOverlayTopRight: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    color: "black",
-    fontSize: 12,
-    paddingHorizontal: 8,
-    paddingTop: 4,
-    // NOTE: For some reason 4 looks more on the bottom than in the top
-    paddingBottom: 2,
-    borderRadius: 4,
-    fontFamily: "Roboto",
-    lineHeight: 1.5,
-    letterSpacing: 0.2,
-  },
-  dateOverlayBottomRight: {
-    position: "absolute",
-    bottom: 8,
-    right: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    color: "black",
-    fontSize: 12,
-    paddingHorizontal: 8,
-    paddingTop: 4,
-    // NOTE: For some reason 4 looks more on the bottom than in the top
-    paddingBottom: 2,
-    borderRadius: 4,
-    fontFamily: "Roboto",
-    lineHeight: 1.5,
-    letterSpacing: 0.2,
-  },
-  descriptionBottom: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    color: "black",
-    fontSize: 14,
-    padding: 8,
-    fontFamily: "Roboto",
-    lineHeight: 1.5,
-    letterSpacing: 0.2,
-  },
-  descriptionTop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    color: "black",
-    fontSize: 14,
-    padding: 8,
-    fontFamily: "Roboto",
-    lineHeight: 1.5,
-    letterSpacing: 0.2,
-  },
-  descriptionLeft: {
-    fontSize: 14,
-    padding: 8,
-    display: "flex",
-    justifyContent: "center",
-    backgroundColor: "#F3F4F6",
-    fontFamily: "Roboto",
-    lineHeight: 1.5,
-    letterSpacing: 0.2,
-  },
-  descriptionRight: {
-    fontSize: 14,
-    padding: 8,
-    display: "flex",
-    justifyContent: "center",
-    backgroundColor: "#F3F4F6",
-    fontFamily: "Roboto",
-    lineHeight: 1.5,
-    letterSpacing: 0.2,
-  },
-  photoContainerFlex: {
-    position: "absolute",
-    flexDirection: "row",
-    display: "flex",
-  },
 });
+
+// Dynamic styles based on font size
+const createDynamicStyles = (fontSize: number) => {
+  const basePadding = fontSize * 0.67;
+
+  return {
+    // Common text style
+    text: {
+      color: "black",
+      fontSize: fontSize,
+      fontFamily: "Roboto",
+      lineHeight: 1,
+      letterSpacing: 0.2,
+    },
+    // Date overlay styles
+    dateOverlay: {
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      paddingHorizontal: basePadding,
+      paddingVertical: basePadding * 0.5,
+      borderRadius: basePadding * 0.5,
+    },
+    // Description styles
+    descriptionOverlay: {
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      color: "black",
+      fontSize: fontSize,
+      padding: basePadding,
+      fontFamily: "Roboto",
+      lineHeight: 1,
+      letterSpacing: 0.2,
+    },
+    descriptionSide: {
+      padding: basePadding,
+      display: "flex",
+      justifyContent: "center",
+      backgroundColor: "#F3F4F6",
+    },
+  };
+};
+
+// Web preview styles
+const createWebStyles = (fontSize: number) => {
+  const basePadding = fontSize * 0.67;
+
+  return {
+    date: {
+      hyphens: "none" as const,
+      wordWrap: "break-word" as const,
+      fontSize: `${fontSize}px`,
+      padding: `${basePadding * 0.5}px ${basePadding}px`,
+      borderRadius: `${basePadding * 0.5}px`,
+      lineHeight: 1,
+    },
+    description: {
+      hyphens: "none" as const,
+      wordWrap: "break-word" as const,
+      fontSize: `${fontSize}px`,
+      padding: `${basePadding}px`,
+      lineHeight: 1,
+    },
+    descriptionSide: {
+      hyphens: "none" as const,
+      wordWrap: "break-word" as const,
+      fontSize: `${fontSize}px`,
+      padding: `${basePadding}px`,
+      lineHeight: 1,
+    },
+  };
+};
 
 function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [assets, setAssets] = useState<AssetResponseDto[]>([]);
@@ -323,6 +312,11 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
   const [showDescriptions, setShowDescriptions] = useState(
     initialConfig.showDescriptions,
   );
+  const [fontSize, setFontSize] = useState(initialConfig.fontSize);
+
+  // Create dynamic styles based on current fontSize
+  const pdfStyles = useMemo(() => createDynamicStyles(fontSize), [fontSize]);
+  const webStyles = useMemo(() => createWebStyles(fontSize), [fontSize]);
 
   // Customizations
   const [customAspectRatios, setCustomAspectRatios] = useState<
@@ -406,6 +400,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
       filterVideos,
       showDates,
       showDescriptions,
+      fontSize,
       customAspectRatios: Object.fromEntries(customAspectRatios),
       customOrdering,
       descriptionPositions: Object.fromEntries(descriptionPositions),
@@ -425,6 +420,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
     filterVideos,
     showDates,
     showDescriptions,
+    fontSize,
     customAspectRatios,
     customOrdering,
     descriptionPositions,
@@ -1003,6 +999,29 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                     Show Descriptions
                   </label>
                 </div>
+                <div className="flex items-center gap-1">
+                  <label htmlFor="fontSize" className="text-gray-600 text-xs">
+                    Font Size:
+                  </label>
+                  <select
+                    id="fontSize"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="px-1 py-0.5 text-xs border border-gray-300 rounded"
+                  >
+                    <option value="8">8 pt</option>
+                    <option value="9">9 pt</option>
+                    <option value="10">10 pt</option>
+                    <option value="11">11 pt</option>
+                    <option value="12">12 pt</option>
+                    <option value="14">14 pt</option>
+                    <option value="16">16 pt</option>
+                    <option value="18">18 pt</option>
+                    <option value="20">20 pt</option>
+                    <option value="22">22 pt</option>
+                    <option value="24">24 pt</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -1088,7 +1107,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                       width: pageWidth,
                       height: pageHeight,
                     }}
-                    style={styles.page}
+                    style={staticStyles.page}
                   >
                     {/* Page break indicator for combined pages */}
                     {combinePages && (
@@ -1124,7 +1143,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
 
                       // Use absolute positioning for everything (no flex for left/right)
                       const containerStyle = [
-                        styles.photoContainer,
+                        staticStyles.photoContainer,
                         {
                           left: toPoints(photoBox.x),
                           top: toPoints(photoBox.y),
@@ -1139,7 +1158,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                           {hasDescription && descPosition === "left" && (
                             <View
                               style={[
-                                styles.descriptionLeft,
+                                pdfStyles.descriptionSide,
                                 {
                                   position: "absolute",
                                   left: 0,
@@ -1151,13 +1170,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             >
                               <Text
                                 hyphenationCallback={(word) => [word]}
-                                style={{
-                                  color: "black",
-                                  fontSize: 14,
-                                  fontFamily: "Roboto",
-                                  lineHeight: 1.5,
-                                  letterSpacing: 0.2,
-                                }}
+                                style={pdfStyles.text}
                               >
                                 {photoBox.asset.exifInfo?.description}
                               </Text>
@@ -1178,7 +1191,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                     height: toPoints(photoBox.height),
                                     objectFit: "cover",
                                   }
-                                : styles.photo
+                                : staticStyles.photo
                             }
                           />
 
@@ -1186,7 +1199,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                           {hasDescription && descPosition === "right" && (
                             <View
                               style={[
-                                styles.descriptionRight,
+                                pdfStyles.descriptionSide,
                                 {
                                   position: "absolute",
                                   right: 0,
@@ -1198,13 +1211,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             >
                               <Text
                                 hyphenationCallback={(word) => [word]}
-                                style={{
-                                  color: "black",
-                                  fontSize: 14,
-                                  fontFamily: "Roboto",
-                                  lineHeight: 1.5,
-                                  letterSpacing: 0.2,
-                                }}
+                                style={pdfStyles.text}
                               >
                                 {photoBox.asset.exifInfo?.description}
                               </Text>
@@ -1217,9 +1224,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               style={(() => {
                                 switch (descPosition) {
                                   case "bottom":
-                                    return styles.dateOverlayTopRight;
+                                    return {
+                                      ...pdfStyles.dateOverlay,
+                                      position: "absolute",
+                                      top: 8,
+                                      right: 8,
+                                    };
                                   case "top":
-                                    return styles.dateOverlayBottomRight;
+                                    return {
+                                      ...pdfStyles.dateOverlay,
+                                      position: "absolute",
+                                      bottom: 8,
+                                      right: 8,
+                                    };
                                   case "left":
                                     return {
                                       position: "absolute",
@@ -1233,19 +1250,16 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                       left: imageWidth + 8,
                                     };
                                   default:
-                                    return styles.dateOverlayTopRight;
+                                    return {
+                                      ...pdfStyles.dateOverlay,
+                                      position: "absolute",
+                                      top: 8,
+                                      right: 8,
+                                    };
                                 }
                               })()}
                             >
-                              <Text
-                                style={{
-                                  color: "black",
-                                  fontSize: 12,
-                                  fontFamily: "Roboto",
-                                  lineHeight: 1.5,
-                                  letterSpacing: 0.2,
-                                }}
-                              >
+                              <Text style={pdfStyles.text}>
                                 {new Date(
                                   photoBox.asset.fileCreatedAt,
                                 ).toLocaleDateString(undefined, {
@@ -1263,11 +1277,15 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                               descPosition === "bottom") && (
                               <Text
                                 hyphenationCallback={(word) => [word]}
-                                style={
-                                  descPosition === "top"
-                                    ? styles.descriptionTop
-                                    : styles.descriptionBottom
-                                }
+                                style={{
+                                  ...pdfStyles.descriptionOverlay,
+                                  position: "absolute",
+                                  ...(descPosition === "top"
+                                    ? { top: 0 }
+                                    : { bottom: 0 }),
+                                  left: 0,
+                                  right: 0,
+                                }}
                               >
                                 {photoBox.asset.exifInfo?.description}
                               </Text>
@@ -1601,11 +1619,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             style={{
                               width: `${imageWidth}px`,
                               flexShrink: 0,
-                              hyphens: "none",
-                              wordWrap: "break-word",
-                              fontSize: "14px",
-                              padding: "8px",
-                              lineHeight: 1.5,
+                              ...webStyles.descriptionSide,
                             }}
                             onClick={(e) =>
                               handleDescriptionClick(photoBox.asset.id, e)
@@ -1631,38 +1645,31 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                           photoBox.asset.fileCreatedAt &&
                           (() => {
                             const getDateConfig = () => {
-                              const commonStyle = {
-                                hyphens: "none" as const,
-                                wordWrap: "break-word" as const,
-                                fontSize: "12px",
-                                borderRadius: "4px",
-                                lineHeight: 1.5,
-                              };
                               switch (descPosition) {
                                 case "bottom":
                                   return {
                                     className:
-                                      "absolute top-2 right-2 px-[8px] py-[4px] bg-white/70 text-black backdrop-blur-sm cursor-pointer hover:bg-white/80 transition-colors",
-                                    style: commonStyle,
+                                      "absolute top-2 right-2 bg-white/70 text-black backdrop-blur-sm cursor-pointer hover:bg-white/80 transition-colors",
+                                    style: webStyles.date,
                                   };
                                 case "top":
                                   return {
                                     className:
-                                      "absolute bottom-2 right-2 px-[8px] py-[4px] bg-white/70 text-black backdrop-blur-sm cursor-pointer hover:bg-white/80 transition-colors",
-                                    style: commonStyle,
+                                      "absolute bottom-2 right-2 bg-white/70 text-black backdrop-blur-sm cursor-pointer hover:bg-white/80 transition-colors",
+                                    style: webStyles.date,
                                   };
                                 case "left":
                                   return {
                                     className:
                                       "absolute top-4 left-2 text-black cursor-pointer",
-                                    style: commonStyle,
+                                    style: webStyles.date,
                                   };
                                 case "right":
                                   return {
                                     className:
                                       "absolute top-4 text-black cursor-pointer",
                                     style: {
-                                      ...commonStyle,
+                                      ...webStyles.date,
                                       left: `${imageWidth + 8}px`,
                                     },
                                   };
@@ -1670,7 +1677,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                                   return {
                                     className:
                                       "absolute top-2 right-2 bg-white/70 text-black backdrop-blur-sm cursor-pointer hover:bg-white/80 transition-colors",
-                                    style: commonStyle,
+                                    style: webStyles.date,
                                   };
                               }
                             };
@@ -1712,26 +1719,19 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             }
 
                             const getDescriptionConfig = () => {
-                              const commonStyle = {
-                                hyphens: "none" as const,
-                                wordWrap: "break-word" as const,
-                                fontSize: "14px",
-                                padding: "8px",
-                                lineHeight: 1.5,
-                              };
                               switch (descPosition) {
                                 case "top":
                                   return {
                                     className:
-                                      "absolute top-0 left-0 right-0 bg-white/70 text-black cursor-pointer hover:bg-white/80 transition-colors z-10 p-[8px]",
-                                    style: commonStyle,
+                                      "absolute top-0 left-0 right-0 bg-white/70 text-black cursor-pointer hover:bg-white/80 transition-colors z-10",
+                                    style: webStyles.description,
                                   };
                                 case "bottom":
                                 default:
                                   return {
                                     className:
                                       "absolute bottom-0 left-0 right-0 bg-white/70 text-black cursor-pointer hover:bg-white/80 transition-colors z-10",
-                                    style: commonStyle,
+                                    style: webStyles.description,
                                   };
                               }
                             };
@@ -1759,11 +1759,7 @@ function PhotoGrid({ immichConfig, album, onBack }: PhotoGridProps) {
                             style={{
                               width: `${imageWidth}px`,
                               flexShrink: 0,
-                              hyphens: "none",
-                              wordWrap: "break-word",
-                              fontSize: "14px",
-                              padding: "8px",
-                              lineHeight: 1.5,
+                              ...webStyles.descriptionSide,
                             }}
                             onClick={(e) =>
                               handleDescriptionClick(photoBox.asset.id, e)
