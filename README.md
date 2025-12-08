@@ -158,9 +158,23 @@ server {
 
 Reload nginx, for example using `sudo nginx -s reload`
 
-#### Option 3: Docker (Coming Soon)
+#### Option 3: Docker
 
-Docker support is planned for easier deployment.
+Deploy using Docker for easy containerized deployment.
+
+**Build the Docker image:**
+
+```bash
+docker build -t immich-book .
+```
+
+**Run the container:**
+
+```bash
+docker run -d -p 3000:3000 --name immich-book immich-book
+```
+
+The application will be available at `http://localhost:3000`.
 
 ### Using Immich Book
 
